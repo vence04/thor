@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Bear Paw Lodge Weather</title>
+<style>
+:root{
+  --page:#f9f9f7; --surface:#fcfcfb; --ink:#0b0b0b; --ink-2:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,.10);
+  --temp:#2a78d6; --temp-band:rgba(42,120,214,.14); --raw:#898781;
+  --precip:#256abf; --accent:#2a78d6;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --page:#0d0d0d; --surface:#1a1a19; --ink:#ffffff; --ink-2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,.10);
+    --temp:#3987e5; --temp-band:rgba(57,135,229,.18); --raw:#898781; --precip:#3987e5; --accent:#3987e5;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--ink);
+  font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;}
+.wrap{max-width:880px;margin:0 auto;padding:20px 16px 48px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 14px;margin-bottom:4px}
+h1{font-size:22px;margin:0;font-weight:650}
+.sub{color:var(--ink-2);font-size:13px}
+.updated{color:var(--muted);font-size:12.5px;margin:2px 0 14px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  padding:14px 16px;margin-bottom:14px}
+.now{display:flex;flex-wrap:wrap;gap:6px 26px;align-items:baseline}
+.now .big{font-size:44px;font-weight:650;line-height:1}
+.now .cond{font-size:17px}
+.kv{color:var(--ink-2);font-size:13.5px}
+.kv b{color:var(--ink);font-weight:600}
+h2{font-size:14px;font-weight:650;margin:2px 0 10px;color:var(--ink-2);
+  text-transform:uppercase;letter-spacing:.04em}
+.legend{display:flex;gap:16px;font-size:12.5px;color:var(--ink-2);margin:0 0 6px}
+.legend .sw{display:inline-block;width:14px;height:0;border-top:2px solid;vertical-align:middle;
+  margin-right:5px;border-radius:1px}
+svg{display:block;width:100%;height:auto}
+.chartbox{position:relative}
+.tip{position:absolute;pointer-events:none;background:var(--surface);border:1px solid var(--border);
+  border-radius:8px;padding:6px 9px;font-size:12.5px;box-shadow:0 2px 10px rgba(0,0,0,.12);
+  display:none;white-space:nowrap;z-index:3}
+.tip b{font-weight:650}
+.days{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.day{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 12px}
+.day .d{font-weight:650;font-size:13.5px}
+.day .ic{font-size:26px;margin:2px 0}
+.day .hl{font-size:15px}
+.day .hl b{font-weight:650}
+.day .lo{color:var(--ink-2)}
+.day .meta{color:var(--muted);font-size:12px;margin-top:3px}
+button.refresh{background:var(--accent);color:#fff;border:0;border-radius:9px;
+  padding:8px 14px;font:600 13.5px system-ui,sans-serif;cursor:pointer}
+button.refresh[disabled]{opacity:.55;cursor:default}
+.rstat{font-size:12.5px;color:var(--muted);margin-left:10px}
+footer{color:var(--muted);font-size:12px;margin-top:22px}
+footer code{font-size:11.5px}
+table.tbl{border-collapse:collapse;width:100%;font-size:12.5px;display:none}
+table.tbl th,table.tbl td{border-bottom:1px solid var(--grid);padding:4px 8px;
+  text-align:right;font-variant-numeric:tabular-nums}
+table.tbl th:first-child,table.tbl td:first-child{text-align:left}
+.tgl{background:none;border:0;color:var(--muted);font-size:12px;cursor:pointer;
+  text-decoration:underline;padding:0;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Bear Paw Lodge Weather</h1>
+    <span class="sub">Bethlehem / Littleton NH &middot; hyperlocal forecast from the on-site station</span>
+  </header>
+  <div class="updated" id="updated">loading&hellip;</div>
+
+  <div class="card">
+    <div class="now" id="now"></div>
+  </div>
+
+  <div class="card">
+    <h2>Next 72 hours &mdash; temperature</h2>
+    <div class="legend">
+      <span><span class="sw" style="border-color:var(--temp)"></span>Bear Paw forecast</span>
+      <span><span class="sw" style="border-color:var(--raw);border-top-style:dashed"></span>Regional model</span>
+    </div>
+    <div class="chartbox"><svg id="tchart" viewBox="0 0 860 240"></svg><div class="tip" id="ttip"></div></div>
+    <button class="tgl" id="ttbl-btn">show as table</button>
+    <table class="tbl" id="ttbl"></table>
+  </div>
+
+  <div class="card">
+    <h2>Next 72 hours &mdash; precipitation</h2>
+    <div class="chartbox"><svg id="pchart" viewBox="0 0 860 130"></svg><div class="tip" id="ptip"></div></div>
+  </div>
+
+  <div class="card">
+    <h2>10-day outlook</h2>
+    <div class="days" id="days"></div>
+  </div>
+
+  <div class="card">
+    <button class="refresh" id="rerun">Rerun forecast</button><span class="rstat" id="rstat"></span>
+    <div class="kv" style="margin-top:6px">Re-pulls the latest weather models and re-applies the
+      Bear Paw correction. Takes about two minutes.</div>
+  </div>
+
+  <footer id="foot"></footer>
+</div>
+
+<script>
+const REFRESH_HOOK = "https://hooks.nabu.casa/gAAAAABqVjSglM2AV37qm8eUXfACBcrM_FPRhoTEdpQi9n2XxttsSRZX7U7L139XaEmvrQyjVuDbO5bTIs0rOO5dn75zVkLhaGhhv5OYxcmA1Vd9avXussKPiX9GKKGXkOeISCz7xKu8poJ4uZc3CZ_f_wRF3yc5hdt-NyV1Pz0mW1PF0ri1mvQ="; // Nabu Casa cloudhook -> HA -> GitHub workflow_dispatch
+const WMO = {0:["☀️","Clear"],1:["🌤️","Mostly clear"],2:["⛅","Partly cloudy"],
+  3:["☁️","Overcast"],45:["🌫️","Fog"],48:["🌫️","Rime fog"],
+  51:["🌦️","Light drizzle"],53:["🌦️","Drizzle"],55:["🌧️","Heavy drizzle"],
+  56:["🌧️","Freezing drizzle"],57:["🌧️","Freezing drizzle"],
+  61:["🌦️","Light rain"],63:["🌧️","Rain"],65:["🌧️","Heavy rain"],
+  66:["🌧️","Freezing rain"],67:["🌧️","Freezing rain"],
+  71:["🌨️","Light snow"],73:["🌨️","Snow"],75:["❄️","Heavy snow"],
+  77:["❄️","Snow grains"],80:["🌦️","Showers"],81:["🌧️","Showers"],
+  82:["⛈️","Heavy showers"],85:["🌨️","Snow showers"],86:["🌨️","Snow showers"],
+  95:["⛈️","Thunderstorm"],96:["⛈️","T-storm w/ hail"],99:["⛈️","T-storm w/ hail"]};
+const wmo = c => WMO[c] || ["☀️",""];
+const fmtH = t => new Date(t).toLocaleString([], {weekday:"short", hour:"numeric"});
+const fmtD = d => new Date(d+"T12:00:00").toLocaleDateString([], {weekday:"short", month:"short", day:"numeric"});
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+let F=null;
+async function load(bust){
+  const r = await fetch("forecast.json" + (bust ? "?t="+Date.now() : ""), {cache:"no-store"});
+  F = await r.json();
+  render();
+  return F.generated_at;
+}
+
+function render(){
+  const H=F.hourly, D=F.daily;
+  document.getElementById("updated").textContent =
+    "Updated " + new Date(F.generated_at).toLocaleString([], {weekday:"short", hour:"numeric", minute:"2-digit"}) +
+    " · base model: " + F.source_model;
+
+  // now strip (first forecast hour)
+  const [ic, cond] = wmo(H.weather_code[0]);
+  document.getElementById("now").innerHTML =
+    `<span class="big">${Math.round(H.temp_f[0])}°</span>` +
+    `<span class="cond">${ic} ${cond}</span>` +
+    `<span class="kv">Humidity <b>${Math.round(H.humidity_pct[0])}%</b></span>` +
+    `<span class="kv">Wind <b>${Math.round(H.wind_mph[0])} mph</b></span>` +
+    `<span class="kv">Dew point <b>${Math.round(H.dewpoint_f[0])}°</b></span>`;
+
+  drawTemp(); drawPrecip(); drawDays(); tempTable();
+
+  const learning = Object.values(F.methods).every(m => m === "raw");
+  document.getElementById("foot").innerHTML =
+    (learning
+      ? "The station correction is still <b>learning</b> — the station went fully outdoors in July 2026, " +
+        "and the offset model turns on automatically once enough forecast-vs-station history accumulates. " :
+      "Correction methods: <code>" + JSON.stringify(F.methods) + "</code>. ") +
+    "Forecast base: Open-Meteo (" + F.source_model + ") corrected against the Bear Paw Lodge Ecowitt station.";
+}
+
+function frame(svg, w, h, pad, ymin, ymax, yfmt, yticks=4){
+  const g=[]; const py=v=>pad.t+(h-pad.t-pad.b)*(1-(v-ymin)/(ymax-ymin));
+  for(let i=0;i<=yticks;i++){
+    const v=ymin+(ymax-ymin)*i/yticks, y=py(v);
+    g.push(`<line x1="${pad.l}" x2="${w-pad.r}" y1="${y}" y2="${y}" stroke="${css('--grid')}" stroke-width="1"/>`);
+    g.push(`<text x="${pad.l-7}" y="${y+4}" text-anchor="end" font-size="11" fill="${css('--muted')}"
+      style="font-variant-numeric:tabular-nums">${yfmt(v)}</text>`);
+  }
+  return {py, grid:g.join("")};
+}
+
+function xticks(ts, px, w, pad){
+  const out=[];
+  ts.forEach((t,i)=>{
+    const d=new Date(t);
+    if(d.getHours()===0 && i>0)
+      out.push(`<line x1="${px(i)}" x2="${px(i)}" y1="${pad.t}" y2="${pad.top?0:0}" />`);
+  });
+  return out;
+}
+
+function drawTemp(){
+  const H=F.hourly, ts=H.ts, n=ts.length, w=860, h=240, pad={l:38,r:8,t:10,b:24};
+  const band=F.hourly_bands && F.hourly_bands.temp_f;
+  const all=[...H.temp_f, ...H.temp_f_raw, ...(band?[...band.lo,...band.hi]:[])].filter(v=>v!=null);
+  const ymin=Math.floor(Math.min(...all)/5)*5-2, ymax=Math.ceil(Math.max(...all)/5)*5+2;
+  const px=i=>pad.l+(w-pad.l-pad.r)*i/(n-1);
+  const {py, grid}=frame(null,w,h,pad,ymin,ymax,v=>Math.round(v)+"°");
+  let s=grid, labels="";
+  ts.forEach((t,i)=>{const d=new Date(t);
+    if(d.getHours()===0&&i>0) s+=`<line x1="${px(i)}" x2="${px(i)}" y1="${pad.t}" y2="${h-pad.b}" stroke="${css('--grid')}" stroke-width="1"/>`;
+    if(d.getHours()===12) labels+=`<text x="${px(i)}" y="${h-7}" text-anchor="middle" font-size="11" fill="${css('--muted')}">${d.toLocaleDateString([],{weekday:"short"})}</text>`;});
+  if(band){
+    let p="M"; H.temp_f.forEach((v,i)=>{p+=`${px(i)},${py(band.hi[i])} `;});
+    for(let i=n-1;i>=0;i--) p+=`L${px(i)},${py(band.lo[i])} `;
+    s+=`<path d="${p}Z" fill="${css('--temp-band')}" stroke="none"/>`;
+  }
+  const line=(arr,color,dash)=>{let p="";arr.forEach((v,i)=>{p+=(i?"L":"M")+px(i)+","+py(v);});
+    return `<path d="${p}" fill="none" stroke="${color}" stroke-width="2" ${dash?'stroke-dasharray="5 4"':""} stroke-linejoin="round"/>`;};
+  s+=line(H.temp_f_raw, css('--raw'), true);
+  s+=line(H.temp_f, css('--temp'), false);
+  s+=`<line id="tcross" y1="${pad.t}" y2="${h-pad.b}" stroke="${css('--axis')}" stroke-width="1" style="display:none"/>`;
+  s+=`<circle id="tdot" r="4" fill="${css('--temp')}" stroke="${css('--surface')}" stroke-width="2" style="display:none"/>`;
+  s+=labels;
+  const svg=document.getElementById("tchart"); svg.innerHTML=s;
+  hover(svg, document.getElementById("ttip"), n, px, i=>{
+    document.getElementById("tcross").setAttribute("x1",px(i));
+    document.getElementById("tcross").setAttribute("x2",px(i));
+    document.getElementById("tcross").style.display="block";
+    const d=document.getElementById("tdot");
+    d.setAttribute("cx",px(i)); d.setAttribute("cy",py(H.temp_f[i])); d.style.display="block";
+    return `<b>${fmtH(ts[i])}</b><br>Bear Paw: <b>${H.temp_f[i]}°</b><br>` +
+           `Regional: ${H.temp_f_raw[i]}°<br>Wind ${Math.round(H.wind_mph[i])} mph · ` +
+           `${Math.round(H.humidity_pct[i])}% RH`;
+  }, ()=>{document.getElementById("tcross").style.display="none";
+          document.getElementById("tdot").style.display="none";});
+}
+
+function drawPrecip(){
+  const H=F.hourly, ts=H.ts, n=ts.length, w=860, h=130, pad={l:38,r:8,t:8,b:24};
+  const vals=H.precip_in.map(v=>v||0);
+  const ymax=Math.max(0.05, Math.ceil(Math.max(...vals)*20)/20);
+  const px=i=>pad.l+(w-pad.l-pad.r)*i/n;
+  const {py, grid}=frame(null,w,h,pad,0,ymax,v=>v.toFixed(2),2);
+  let s=grid, labels="";
+  ts.forEach((t,i)=>{const d=new Date(t);
+    if(d.getHours()===12) labels+=`<text x="${px(i)}" y="${h-7}" text-anchor="middle" font-size="11" fill="${css('--muted')}">${d.toLocaleDateString([],{weekday:"short"})}</text>`;});
+  const bw=Math.max(2,(w-pad.l-pad.r)/n-2);
+  vals.forEach((v,i)=>{ if(v<=0) return;
+    const y=py(v);
+    s+=`<rect x="${px(i)}" y="${y}" width="${bw}" height="${h-pad.b-y}" rx="2" fill="${css('--precip')}"/>`;});
+  s+=`<line x1="${pad.l}" x2="${w-pad.r}" y1="${h-pad.b}" y2="${h-pad.b}" stroke="${css('--axis')}"/>`;
+  s+=labels;
+  const svg=document.getElementById("pchart"); svg.innerHTML=s;
+  hover(svg, document.getElementById("ptip"), n, i=>px(i)+bw/2, i=>
+    `<b>${fmtH(ts[i])}</b><br>${(vals[i]||0).toFixed(2)}″` +
+    (H.precip_prob&&H.precip_prob[i]!=null?` · ${H.precip_prob[i]}% chance`:""), ()=>{});
+}
+
+function hover(svg, tip, n, px, html, off){
+  const box=svg.parentElement;
+  function move(ev){
+    const r=svg.getBoundingClientRect();
+    const x=(ev.clientX-r.left)*860/r.width;
+    let best=0,bd=1e9;
+    for(let i=0;i<n;i++){const d=Math.abs(px(i)-x); if(d<bd){bd=d;best=i;}}
+    tip.innerHTML=html(best);
+    tip.style.display="block";
+    const bx=box.getBoundingClientRect();
+    let tx=(px(best)*r.width/860)+12;
+    if(tx+tip.offsetWidth > bx.width-8) tx-=tip.offsetWidth+24;
+    tip.style.left=tx+"px"; tip.style.top="14px";
+  }
+  svg.addEventListener("mousemove",move);
+  svg.addEventListener("touchmove",e=>{move(e.touches[0]);e.preventDefault();},{passive:false});
+  svg.addEventListener("mouseleave",()=>{tip.style.display="none";off();});
+}
+
+function drawDays(){
+  const D=F.daily;
+  document.getElementById("days").innerHTML = D.date.map((d,i)=>{
+    const [ic,cond]=wmo(D.weather_code[i]);
+    const pr=D.precip_in[i]>0.005?`${D.precip_in[i].toFixed(2)}″`: "";
+    const pp=D.precip_prob_max&&D.precip_prob_max[i]>=20?` ${Math.round(D.precip_prob_max[i])}%`:"";
+    return `<div class="day"><div class="d">${fmtD(d)}</div><div class="ic">${ic}</div>
+      <div class="hl"><b>${Math.round(D.high_f[i])}°</b> <span class="lo">/ ${Math.round(D.low_f[i])}°</span></div>
+      <div class="meta">${cond}${pr||pp?` · ${pr}${pp}`:""}</div>
+      <div class="meta">wind to ${Math.round(D.gust_max_mph[i])} mph</div></div>`;
+  }).join("");
+}
+
+function tempTable(){
+  const H=F.hourly;
+  let s="<tr><th>Hour</th><th>Bear Paw °F</th><th>Regional °F</th><th>Wind mph</th><th>Precip ″</th></tr>";
+  for(let i=0;i<H.ts.length;i+=3)
+    s+=`<tr><td>${fmtH(H.ts[i])}</td><td>${H.temp_f[i]}</td><td>${H.temp_f_raw[i]}</td>
+        <td>${Math.round(H.wind_mph[i])}</td><td>${(H.precip_in[i]||0).toFixed(2)}</td></tr>`;
+  document.getElementById("ttbl").innerHTML=s;
+}
+document.getElementById("ttbl-btn").onclick=()=>{
+  const t=document.getElementById("ttbl"), b=document.getElementById("ttbl-btn");
+  const show=t.style.display!=="table";
+  t.style.display=show?"table":"none"; b.textContent=show?"hide table":"show as table";
+};
+
+// --- Rerun button: fire the cloudhook, then poll for a fresh forecast.json ---
+const btn=document.getElementById("rerun"), rstat=document.getElementById("rstat");
+if(!REFRESH_HOOK || REFRESH_HOOK.startsWith("__")) btn.parentElement.style.display="none";
+btn.onclick=async()=>{
+  btn.disabled=true; rstat.textContent="requested — pulling fresh models…";
+  const before=F.generated_at;
+  try{ await fetch(REFRESH_HOOK, {method:"POST", mode:"no-cors"}); }catch(e){}
+  const t0=Date.now();
+  const poll=async()=>{
+    try{ const g=await load(true);
+      if(g!==before){ rstat.textContent="updated ✓"; btn.disabled=false; return; } }catch(e){}
+    if(Date.now()-t0 < 5*60*1000) setTimeout(poll, 15000);
+    else { rstat.textContent="taking longer than usual — it will appear on next refresh"; btn.disabled=false; }
+  };
+  setTimeout(poll, 45000);
+};
+
+load(false).catch(()=>{document.getElementById("updated").textContent="Could not load forecast data.";});
+</script>
+</body>
+</html>
