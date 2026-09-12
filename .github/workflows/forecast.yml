@@ -1,0 +1,33 @@
+name: forecast
+on:
+  schedule:
+    - cron: "8 * * * *"   # hourly
+  workflow_dispatch: {}    # the "Rerun ThorCast" button lands here
+
+# This repo is public, so Actions minutes here are free and unlimited. The model is
+# trained in the private vence04/bearpaw-weather, which publishes data/model.json here.
+concurrency:
+  group: forecast
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  predict-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q pandas numpy requests lightgbm
+      - name: Generate corrected forecast
+        run: python scripts/predict.py
+      - name: Commit forecast
+        run: |
+          git config user.name "bearpaw-bot"
+          git config user.email "noreply@github.com"
+          git add forecast.json
+          git diff --cached --quiet || git commit -m "forecast $(date -u +%FT%TZ)"
+          git push
