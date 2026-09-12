@@ -11,15 +11,12 @@ import numpy as np
 import pandas as pd
 import requests
 
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from paths import MODEL_DIR, MODEL_JSON, FORECAST_JSON as OUT_PATH  # noqa: E402
+
 ROOT = Path(__file__).resolve().parents[1]
-
-# This same file runs in two repos: the private bearpaw-weather, where the model is
-# trained and lives in model/, and the public thor, where it is published into data/
-# and the page is served from the repo root. Resolve both rather than keeping two
-# copies that drift apart.
-MODEL_DIR = ROOT / "model" if (ROOT / "model" / "model.json").exists() else ROOT / "data"
-OUT_PATH = (ROOT / "site" / "forecast.json") if (ROOT / "site").is_dir() else (ROOT / "forecast.json")
-
 LAT, LON = 44.3205501, -71.7438537
 UNITS = {"temperature_unit": "fahrenheit", "wind_speed_unit": "mph", "precipitation_unit": "inch"}
 
@@ -83,7 +80,7 @@ def apply_correction(spec, fc_series, lead_series, ts_index, cloud_series):
 
 
 def main() -> None:
-    model = json.loads((MODEL_DIR / "model.json").read_text())
+    model = json.loads(MODEL_JSON.read_text())
     src = model.get("source_model", "best_match")
 
     r = requests.get("https://api.open-meteo.com/v1/forecast", params={

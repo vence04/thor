@@ -1,26 +1,138 @@
-# Source bake-off — Bear Paw Lodge (44.3206, -71.7439)
+# Source bake-off � Bear Paw Lodge (44.3206, -71.7439)
 
-Actuals: Ecowitt station hourly means, 2025-08-18 to 2026-07-14.
+Actuals: Ecowitt station hourly means, 2025-08-18 to 2026-08-26.
 Day-0 = archived freshest-run forecasts (Open-Meteo Historical Forecast API).
 
 ## Day-0 skill by variable (lower MAE = better)
+
+### dewpoint_f
+
+| model          |    n |   mae |   bias |   rmse |
+|:---------------|-----:|------:|-------:|-------:|
+| ncep_nbm_conus | 1051 |  2.79 |   0.83 |   4.00 |
+| icon_seamless  | 1051 |  2.88 |  -0.31 |   3.83 |
+| gem_seamless   | 1051 |  3.02 |  -0.06 |   4.17 |
+| ecmwf_ifs025   | 1051 |  3.13 |  -0.38 |   4.22 |
+| gfs_hrrr       | 1051 |  3.32 |   0.19 |   4.52 |
+| best_match     | 1051 |  3.32 |   0.19 |   4.52 |
+| gfs_seamless   | 1051 |  3.32 |   0.19 |   4.52 |
+
+### gust_mph
+
+| model          |    n |   mae |   bias |   rmse |
+|:---------------|-----:|------:|-------:|-------:|
+| ncep_nbm_conus | 1051 |  3.54 |   1.98 |   4.88 |
+| gem_seamless   | 1051 |  4.08 |   1.72 |   5.80 |
+| gfs_hrrr       | 1051 |  4.55 |   3.11 |   6.28 |
+| best_match     | 1051 |  4.55 |   3.11 |   6.28 |
+| gfs_seamless   | 1051 |  4.55 |   3.11 |   6.28 |
+| icon_seamless  | 1051 |  5.81 |   5.26 |   7.90 |
+| ecmwf_ifs025   | 1051 |  7.34 |   7.19 |   9.05 |
+
+### humidity_pct
+
+| model          |    n |   mae |   bias |   rmse |
+|:---------------|-----:|------:|-------:|-------:|
+| best_match     | 1051 |  7.96 |   0.84 |  10.08 |
+| gfs_hrrr       | 1051 |  7.96 |   0.84 |  10.08 |
+| gfs_seamless   | 1051 |  7.96 |   0.84 |  10.08 |
+| ecmwf_ifs025   | 1051 |  8.07 |   0.14 |  11.15 |
+| icon_seamless  | 1051 |  8.64 |   1.22 |  11.52 |
+| gem_seamless   | 1051 |  9.01 |  -0.19 |  12.49 |
+| ncep_nbm_conus | 1051 |  9.22 |   4.37 |  11.73 |
+
+### precip_in
+
+| model          |    n |   mae |   bias |   rmse |
+|:---------------|-----:|------:|-------:|-------:|
+| best_match     | 1465 |  0.00 |  -0.00 |   0.04 |
+| gfs_hrrr       | 1465 |  0.00 |  -0.00 |   0.04 |
+| gfs_seamless   | 1465 |  0.00 |  -0.00 |   0.04 |
+| gem_seamless   | 1465 |  0.01 |  -0.00 |   0.03 |
+| icon_seamless  | 1465 |  0.01 |  -0.00 |   0.03 |
+| ncep_nbm_conus | 1465 |  0.01 |   0.00 |   0.03 |
+| ecmwf_ifs025   | 1465 |  0.01 |   0.00 |   0.03 |
 
 ### pressure_abs_hpa
 
 | model         |    n |   mae |   bias |   rmse |
 |:--------------|-----:|------:|-------:|-------:|
-| gem_seamless  | 7186 |  1.26 |  -0.02 |   2.71 |
-| icon_seamless | 7186 |  1.33 |  -0.12 |   2.73 |
-| ecmwf_ifs025  | 7186 |  1.43 |  -0.29 |   2.75 |
-| best_match    | 7186 |  2.19 |  -1.12 |   3.20 |
-| gfs_hrrr      | 7186 |  2.19 |  -1.12 |   3.20 |
-| gfs_seamless  | 7186 |  2.19 |  -1.12 |   3.20 |
+| gem_seamless  | 8636 |  1.30 |  -0.25 |   2.72 |
+| icon_seamless | 8636 |  1.36 |  -0.33 |   2.74 |
+| ecmwf_ifs025  | 8636 |  1.45 |  -0.46 |   2.76 |
+| best_match    | 8636 |  2.16 |  -1.25 |   3.19 |
+| gfs_hrrr      | 8636 |  2.16 |  -1.25 |   3.19 |
+| gfs_seamless  | 8636 |  2.16 |  -1.25 |   3.19 |
+
+### temp_f
+
+| model          |    n |   mae |   bias |   rmse |
+|:---------------|-----:|------:|-------:|-------:|
+| ecmwf_ifs025   | 1051 |  3.70 |  -0.08 |   5.14 |
+| best_match     | 1051 |  3.84 |  -0.25 |   5.30 |
+| gfs_hrrr       | 1051 |  3.84 |  -0.25 |   5.30 |
+| gfs_seamless   | 1051 |  3.84 |  -0.25 |   5.30 |
+| gem_seamless   | 1051 |  3.89 |   0.56 |   5.62 |
+| ncep_nbm_conus | 1051 |  4.14 |  -0.60 |   5.35 |
+| icon_seamless  | 1051 |  4.16 |  -0.46 |   5.46 |
+
+### wind_mph
+
+| model          |    n |   mae |   bias |   rmse |
+|:---------------|-----:|------:|-------:|-------:|
+| gem_seamless   | 1051 |  2.36 |   2.22 |   2.88 |
+| ncep_nbm_conus | 1051 |  2.49 |   2.28 |   3.28 |
+| icon_seamless  | 1051 |  2.62 |   2.54 |   3.31 |
+| best_match     | 1051 |  3.21 |   3.12 |   3.89 |
+| gfs_seamless   | 1051 |  3.21 |   3.12 |   3.89 |
+| gfs_hrrr       | 1051 |  3.21 |   3.12 |   3.89 |
+| ecmwf_ifs025   | 1051 |  3.39 |   3.32 |   4.25 |
 
 ## MAE by lead time, days 1-7 (previous-runs)
 
-_Not enough outdoor-era data yet — accumulates automatically via weekly retrain._
+### gust_mph
+
+| model          |    1 |    2 |    3 |    4 |    5 |    6 |    7 |
+|:---------------|-----:|-----:|-----:|-----:|-----:|-----:|-----:|
+| best_match     | 6.34 | 3.72 | 3.72 | 4.07 | 4.63 | 4.62 | 4.86 |
+| gfs_seamless   | 6.34 | 3.72 | 3.72 | 4.07 | 4.63 | 4.62 | 4.86 |
+| ncep_nbm_conus | 3.46 | 3.49 | 3.57 | 3.71 | 3.82 | 3.79 | 3.68 |
+
+### humidity_pct
+
+| model          |     1 |     2 |     3 |     4 |     5 |     6 |     7 |
+|:---------------|------:|------:|------:|------:|------:|------:|------:|
+| best_match     | 13.56 | 11.86 | 12.99 | 13.55 | 13.40 | 14.89 | 14.93 |
+| ecmwf_ifs025   |  8.91 |  9.81 | 10.45 | 11.06 | 12.45 | 12.61 | 11.91 |
+| gfs_seamless   | 13.56 | 11.86 | 12.99 | 13.55 | 13.40 | 14.89 | 14.93 |
+| ncep_nbm_conus |  9.66 |  9.99 | 10.50 | 11.27 | 11.50 | 11.03 | 11.08 |
+
+### temp_f
+
+| model          |    1 |    2 |    3 |    4 |    5 |    6 |    7 |
+|:---------------|-----:|-----:|-----:|-----:|-----:|-----:|-----:|
+| best_match     | 3.90 | 5.06 | 4.93 | 5.30 | 5.42 | 5.93 | 5.89 |
+| ecmwf_ifs025   | 3.87 | 4.02 | 4.00 | 4.24 | 4.27 | 4.67 | 4.28 |
+| gfs_seamless   | 3.90 | 5.06 | 4.93 | 5.30 | 5.42 | 5.93 | 5.89 |
+| ncep_nbm_conus | 4.26 | 4.27 | 4.28 | 4.27 | 4.28 | 4.21 | 4.41 |
+
+### wind_mph
+
+| model          |    1 |    2 |    3 |    4 |    5 |    6 |    7 |
+|:---------------|-----:|-----:|-----:|-----:|-----:|-----:|-----:|
+| best_match     | 4.43 | 2.66 | 2.43 | 2.69 | 2.70 | 2.57 | 2.51 |
+| ecmwf_ifs025   | 3.52 | 3.53 | 3.35 | 3.38 | 3.53 | 2.91 | 2.94 |
+| gfs_seamless   | 4.43 | 2.66 | 2.43 | 2.69 | 2.70 | 2.57 | 2.51 |
+| ncep_nbm_conus | 2.46 | 2.37 | 2.32 | 2.23 | 2.03 | 1.90 | 1.81 |
 
 ## Seasonal day-0 MAE (temperature)
 
-| model   |
-|---------|
+| model          |   summer |
+|:---------------|---------:|
+| best_match     |     3.84 |
+| ecmwf_ifs025   |     3.70 |
+| gem_seamless   |     3.89 |
+| gfs_hrrr       |     3.84 |
+| gfs_seamless   |     3.84 |
+| icon_seamless  |     4.16 |
+| ncep_nbm_conus |     4.14 |
