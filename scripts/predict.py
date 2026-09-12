@@ -15,6 +15,12 @@ ROOT = Path(__file__).resolve().parents[1]
 LAT, LON = 44.3205501, -71.7438537
 UNITS = {"temperature_unit": "fahrenheit", "wind_speed_unit": "mph", "precipitation_unit": "inch"}
 
+# A correction that flattens the forecast is broken, not confident. On 2026-09-12 an
+# lgbm model trained on a two-month window collapsed to a constant 58.7F for ten days
+# because its doy feature could not extrapolate. Never publish that: if a corrected
+# series varies far less than the raw one it came from, ship raw instead.
+COLLAPSE_RATIO = 0.30
+
 HOURLY = ["temperature_2m", "relative_humidity_2m", "dew_point_2m", "wind_speed_10m",
           "wind_gusts_10m", "wind_direction_10m", "precipitation", "precipitation_probability",
           "cloud_cover", "surface_pressure", "weather_code"]
@@ -95,8 +101,17 @@ def main() -> None:
         actual_col = next((k for k, v in model["variables"].items()
                            if v["fc_col"] == fc_col), None)
         spec = model["variables"].get(actual_col, {"method": "raw"})
-        out_hourly[out_name] = apply_correction(spec, df[fc_col], lead, df.index, cloud).round(1)
-        out_hourly[f"{out_name}_raw"] = df[fc_col].round(1)
+        corrected = apply_correction(spec, df[fc_col], lead, df.index, cloud).round(1)
+        raw_series = df[fc_col].round(1)
+        raw_sd, cor_sd = float(raw_series.std()), float(corrected.std())
+        if spec.get("method", "raw") != "raw" and raw_sd > 0 and cor_sd < COLLAPSE_RATIO * raw_sd:
+            print(f"WARN: {out_name} correction collapsed (sd {cor_sd:.2f} vs raw {raw_sd:.2f}) "
+                  f"- publishing raw for this variable")
+            corrected = raw_series
+            spec = {"method": "raw"}
+            model["variables"][actual_col]["method"] = "raw"
+        out_hourly[out_name] = corrected
+        out_hourly[f"{out_name}_raw"] = raw_series
         b = spec.get("bands", {})
         if b:
             max_l = max(int(k) for k in b)
