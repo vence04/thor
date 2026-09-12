@@ -12,6 +12,14 @@ import pandas as pd
 import requests
 
 ROOT = Path(__file__).resolve().parents[1]
+
+# This same file runs in two repos: the private bearpaw-weather, where the model is
+# trained and lives in model/, and the public thor, where it is published into data/
+# and the page is served from the repo root. Resolve both rather than keeping two
+# copies that drift apart.
+MODEL_DIR = ROOT / "model" if (ROOT / "model" / "model.json").exists() else ROOT / "data"
+OUT_PATH = (ROOT / "site" / "forecast.json") if (ROOT / "site").is_dir() else (ROOT / "forecast.json")
+
 LAT, LON = 44.3205501, -71.7438537
 UNITS = {"temperature_unit": "fahrenheit", "wind_speed_unit": "mph", "precipitation_unit": "inch"}
 
@@ -61,9 +69,9 @@ def apply_correction(spec, fc_series, lead_series, ts_index, cloud_series):
         Xs = (X - np.array(params["scale_mean"])) / np.array(params["scale_std"])
         return pd.Series(Xs @ np.array(params["coef"]) + params["intercept"], index=fc.index)
     if method == "lgbm":
-        booster_path = ROOT / "data" / params["booster_file"]
+        booster_path = MODEL_DIR / params["booster_file"]
         if not booster_path.exists():
-            print(f"WARN: {booster_path.name} not published to this repo - falling back to raw")
+            print(f"WARN: {booster_path.name} is not present here - falling back to raw")
             return fc
         import lightgbm as lgb
         booster = lgb.Booster(model_file=str(booster_path))
@@ -75,7 +83,7 @@ def apply_correction(spec, fc_series, lead_series, ts_index, cloud_series):
 
 
 def main() -> None:
-    model = json.loads((ROOT / "data" / "model.json").read_text())
+    model = json.loads((MODEL_DIR / "model.json").read_text())
     src = model.get("source_model", "best_match")
 
     r = requests.get("https://api.open-meteo.com/v1/forecast", params={
@@ -191,8 +199,9 @@ def main() -> None:
         "ha_hourly": ha_hourly,
         "ha_daily": ha_daily,
     }
-    (ROOT / "forecast.json").write_text(json.dumps(payload))
-    print(f"forecast.json written: {len(h72)} hourly rows, {len(daily)} days, source={src}")
+    OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    OUT_PATH.write_text(json.dumps(payload))
+    print(f"{OUT_PATH} written: {len(h72)} hourly rows, {len(daily)} days, source={src}")
     print("methods:", payload["methods"])
 
 
