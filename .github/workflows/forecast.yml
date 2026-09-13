@@ -1,8 +1,15 @@
 name: forecast
 on:
   schedule:
-    - cron: "8 * * * *"   # hourly
-  workflow_dispatch: {}    # the "Rerun ThorCast" button lands here
+    # Asks for a run every 15 minutes, but do not read that as a 15-minute forecast.
+    # GitHub runs scheduled workflows on a best-effort queue and drops most of them:
+    # with a plain hourly "8 * * * *" this repo actually fired at 23:56, 04:37 and
+    # 10:09 - three times in fifteen hours, up to five hours apart, and never at :08.
+    # Asking four times an hour gets roughly one real run an hour. Open-Meteo only
+    # publishes hourly anyway, so a run that finds nothing new just republishes the
+    # same numbers; the cost of over-asking is a few extra free public-repo minutes.
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
 
 # This repo is public, so Actions minutes here are free and unlimited. The model is
 # trained in the private vence04/bearpaw-weather, which publishes data/model.json here.
