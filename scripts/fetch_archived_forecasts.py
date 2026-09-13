@@ -6,7 +6,7 @@ Two products:
 2. Previous Runs API -> the same variables as forecast 1..7 days ahead, for
    lead-time-dependent bias modelling.
 
-Free, keyless, non-commercial. Writes parquet to data/forecasts/.
+Free, keyless, non-commercial. Writes parquet to the forecast dir for this repo layout (see scripts/paths.py).
 """
 import time
 import sys
@@ -15,9 +15,12 @@ from pathlib import Path
 import pandas as pd
 import requests
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from paths import FORECAST_DIR  # noqa: E402
+
 LAT, LON = 44.3205501, -71.7438537
 START, END = "2025-08-18", None  # END defaults to today
-OUT = Path(__file__).resolve().parents[1] / "data" / "forecasts"
+OUT = FORECAST_DIR
 
 HOURLY = [
     "temperature_2m", "relative_humidity_2m", "dew_point_2m",

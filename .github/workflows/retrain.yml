@@ -10,6 +10,7 @@ on:
 # writes was already published here as the data feed, so nothing new is exposed.
 permissions:
   contents: write
+  actions: write   # the last step dispatches forecast.yml; contents alone is not enough
 
 concurrency:
   group: retrain
