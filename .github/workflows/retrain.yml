@@ -47,8 +47,19 @@ jobs:
           git config user.name "bearpaw-bot"
           git config user.email "noreply@github.com"
           git add -A data
-          git diff --cached --quiet || git commit -m "weekly retrain $(date -u +%F)"
-          git push
+          if git diff --cached --quiet; then echo "no change"; exit 0; fi
+          git commit -m "weekly retrain $(date -u +%F)"
+          # The hourly forecast and the weekly retrain both push to main here, and the
+          # retrain dispatches the forecast as its last step, so they race by design.
+          # A rejected push used to fail the run and silently leave the site stale.
+          for attempt in 1 2 3 4 5; do
+            if git push; then echo "pushed on attempt $attempt"; exit 0; fi
+            echo "push rejected, rebasing (attempt $attempt)"
+            git pull --rebase --autostash origin main || true
+            sleep $((RANDOM % 5 + 2))
+          done
+          echo "::error::could not push after 5 attempts - another writer holds main"
+          exit 1
 
       - name: Regenerate forecast with the new model
         env:
