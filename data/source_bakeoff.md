@@ -1,4 +1,4 @@
-# Source bake-off — Bear Paw Lodge (44.3206, -71.7439)
+# Source bake-off â€” Bear Paw Lodge (44.3206, -71.7439)
 
 Actuals: Ecowitt station hourly means, 2025-08-18 to 2026-08-26.
 Day-0 = archived freshest-run forecasts (Open-Meteo Historical Forecast API).

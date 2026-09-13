@@ -276,8 +276,8 @@ def main() -> None:
         print(f"{actual_col:18s} n={n:6d} span={span_d:4d}d doy={int(use_doy)} -> {best:5s}  " +
               " ".join(f"{k}={v:.3f}" for k, v in cand.items() if not np.isinf(v)))
 
-    (MODEL_DIR / "model.json").write_text(json.dumps(result, indent=2))
-    (REPORTS_DIR / "backtest.md").write_text("\n".join(report))
+    (MODEL_DIR / "model.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
+    (REPORTS_DIR / "backtest.md").write_text("\n".join(report), encoding="utf-8")
 
 
 if __name__ == "__main__":

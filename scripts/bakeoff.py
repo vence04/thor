@@ -123,7 +123,7 @@ def main() -> None:
     out.append("")
 
     (REPORTS_DIR).mkdir(exist_ok=True)
-    (REPORTS_DIR / "source_bakeoff.md").write_text("\n".join(out))
+    (REPORTS_DIR / "source_bakeoff.md").write_text("\n".join(out), encoding="utf-8")
     day0.to_csv(REPORTS_DIR / "day0_scores.csv", index=False)
     leads.to_csv(REPORTS_DIR / "lead_scores.csv", index=False)
     print("day-0 winners by variable:")

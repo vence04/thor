@@ -80,7 +80,7 @@ def apply_correction(spec, fc_series, lead_series, ts_index, cloud_series):
 
 
 def main() -> None:
-    model = json.loads(MODEL_JSON.read_text())
+    model = json.loads(MODEL_JSON.read_text(encoding="utf-8"))
     src = model.get("source_model", "best_match")
 
     r = requests.get("https://api.open-meteo.com/v1/forecast", params={
@@ -197,7 +197,7 @@ def main() -> None:
         "ha_daily": ha_daily,
     }
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    OUT_PATH.write_text(json.dumps(payload))
+    OUT_PATH.write_text(json.dumps(payload), encoding="utf-8")
     print(f"{OUT_PATH} written: {len(h72)} hourly rows, {len(daily)} days, source={src}")
     print("methods:", payload["methods"])
 

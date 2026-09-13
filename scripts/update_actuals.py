@@ -130,10 +130,24 @@ def main() -> None:
         print("refreshed from Home Assistant long-term statistics")
         return
 
-    print("::error::No station actuals source is reachable. The Ecowitt cloud API has no "
-          "credentials and Home Assistant is not reachable from here, so no new "
-          "observations were ingested and the offset model cannot improve.")
-    print(f"Existing data still ends at {last}.")
+    # Two different situations, and conflating them is either noise or a silent failure.
+    #
+    #  - No credentials at all: the Ecowitt keys have not been set up yet. That is a
+    #    known pending task, not a new outage, so warn and let the retrain continue
+    #    rather than mailing a red build every Monday about something already known.
+    #  - Credentials present but nothing came back: something IS broken - dead station,
+    #    revoked key, API change. Fail, because this is the case that hid a dead sensor
+    #    for two months behind nine green builds.
+    configured = any(secret(k) for k in ("ECOWITT_APP_KEY", "ECOWITT_API_KEY"))
+    if not configured:
+        print("::warning::Ecowitt credentials are not configured, so no new observations "
+              "were ingested. The offset model cannot improve until they are set. "
+              f"Existing data ends at {last}.")
+        return
+
+    print("::error::Ecowitt credentials ARE configured but no observations could be "
+          "fetched, and Home Assistant is not reachable from here. The station is "
+          f"likely down. Existing data still ends at {last}.")
     sys.exit(1)
 
 
