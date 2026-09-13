@@ -41,10 +41,14 @@ ECOWITT_FIELDS = {
 
 
 # env var -> field of the "Ecowitt API" item (API Credential) in claude-code-secrets.
-# username/credential are the template's own fields; mac is a custom one.
+# All three are fields the API Credential template already provides, so nothing has to
+# be added or renamed in 1Password - "hostname" is simply reused to hold the station
+# MAC, since an Ecowitt station has no hostname of its own.
+OP_ITEM_ID = "Ecowitt API"   # replace with the item's 26-char ID if the title ever changes
+
 OP_FIELDS = {"ECOWITT_APP_KEY": "username",     # Application Key
              "ECOWITT_API_KEY": "credential",   # API Key
-             "ECOWITT_MAC": "mac"}              # custom field, the station MAC
+             "ECOWITT_MAC": "hostname"}         # station MAC
 
 
 def secret(name: str) -> str | None:
@@ -52,7 +56,8 @@ def secret(name: str) -> str | None:
     val = os.environ.get(name)
     if val:
         return val
-    ref = f"op://claude-code-secrets/Ecowitt API/{OP_FIELDS[name]}"
+    # by item ID, not title: "op://vault/Ecowitt API/..." fails to resolve
+    ref = f"op://claude-code-secrets/{OP_ITEM_ID}/{OP_FIELDS[name]}"
     try:
         out = subprocess.run(["op", "read", ref], capture_output=True, text=True, timeout=30)
     except (FileNotFoundError, subprocess.TimeoutExpired):
