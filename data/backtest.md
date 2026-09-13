@@ -42,4 +42,4 @@ Source model: `best_match`. Rolling-origin CV, 4 folds. Winner must beat raw MAE
 | raw | 1.688 |
 | bias | 1.664 |
 | ridge | 0.868 |
-| lgbm | 1.090 |
+| lgbm | 1.080 |
