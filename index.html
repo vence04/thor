@@ -115,16 +115,15 @@ table.tbl th:first-child,table.tbl td:first-child{text-align:left}
   </div>
 
   <div class="card">
-    <button class="refresh" id="rerun">⚡ Rerun ThorCast</button><span class="rstat" id="rstat"></span>
-    <div class="kv" style="margin-top:6px">Re-pulls the latest weather models and re-applies the
-      Bear Paw Trail correction. Takes about two minutes.</div>
+    <button class="refresh" id="rerun">⚡ Check for a newer forecast</button><span class="rstat" id="rstat"></span>
+    <div class="kv" style="margin-top:6px">A new ThorCast is published every hour. This
+      re-checks for it straight away.</div>
   </div>
 
   <footer id="foot"></footer>
 </div>
 
 <script>
-const REFRESH_HOOK = "https://hooks.nabu.casa/gAAAAABqVjSglM2AV37qm8eUXfACBcrM_FPRhoTEdpQi9n2XxttsSRZX7U7L139XaEmvrQyjVuDbO5bTIs0rOO5dn75zVkLhaGhhv5OYxcmA1Vd9avXussKPiX9GKKGXkOeISCz7xKu8poJ4uZc3CZ_f_wRF3yc5hdt-NyV1Pz0mW1PF0ri1mvQ="; // Nabu Casa cloudhook -> HA -> GitHub workflow_dispatch
 const WMO = {0:["☀️","Clear"],1:["🌤️","Mostly clear"],2:["⛅","Partly cloudy"],
   3:["☁️","Overcast"],45:["🌫️","Fog"],48:["🌫️","Rime fog"],
   51:["🌦️","Light drizzle"],53:["🌦️","Drizzle"],55:["🌧️","Heavy drizzle"],
@@ -299,19 +298,25 @@ document.getElementById("ttbl-btn").onclick=()=>{
 
 // --- Rerun button: fire the cloudhook, then poll for a fresh forecast.json ---
 const btn=document.getElementById("rerun"), rstat=document.getElementById("rstat");
-if(!REFRESH_HOOK || REFRESH_HOOK.startsWith("__")) btn.parentElement.style.display="none";
+const ageText = iso => {
+  const m = Math.round((Date.now() - new Date(iso).getTime())/60000);
+  if(m < 1) return "just now";
+  if(m < 60) return m + " min ago";
+  const h = Math.floor(m/60);
+  return h + (h===1 ? " hour " : " hours ") + (m%60) + " min ago";
+};
 btn.onclick=async()=>{
-  btn.disabled=true; rstat.textContent="requested — pulling fresh models…";
-  const before=F.generated_at;
-  try{ await fetch(REFRESH_HOOK, {method:"POST", mode:"no-cors"}); }catch(e){}
-  const t0=Date.now();
-  const poll=async()=>{
-    try{ const g=await load(true);
-      if(g!==before){ rstat.textContent="updated ✓"; btn.disabled=false; return; } }catch(e){}
-    if(Date.now()-t0 < 5*60*1000) setTimeout(poll, 15000);
-    else { rstat.textContent="taking longer than usual — it will appear on next refresh"; btn.disabled=false; }
-  };
-  setTimeout(poll, 45000);
+  btn.disabled=true; rstat.textContent="checking…";
+  const before = F.generated_at;
+  try{
+    const g = await load(true);
+    rstat.textContent = (g !== before)
+      ? "updated ✓ — " + ageText(g)
+      : "already the latest — published " + ageText(g);
+  }catch(e){
+    rstat.textContent = "could not reach the forecast file";
+  }
+  btn.disabled=false;
 };
 
 load(false).catch(()=>{document.getElementById("updated").textContent="Could not load forecast data.";});
