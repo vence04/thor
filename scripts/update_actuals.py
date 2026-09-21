@@ -77,7 +77,7 @@ def from_ecowitt_cloud(start: pd.Timestamp, end: pd.Timestamp) -> pd.DataFrame |
         "application_key": app_key, "api_key": api_key, "mac": mac,
         "start_date": start.strftime("%Y-%m-%d %H:%M:%S"),
         "end_date": end.strftime("%Y-%m-%d %H:%M:%S"),
-        "cycle_type": "30min", "temp_unitid": 1, "pressure_unitid": 4,
+        "cycle_type": "30min", "temp_unitid": 2, "pressure_unitid": 4,
         "wind_speed_unitid": 9, "rainfall_unitid": 13,
         "call_back": "outdoor,wind,solar_and_uvi,rainfall,pressure"}, timeout=120)
     r.raise_for_status()
@@ -90,9 +90,12 @@ def from_ecowitt_cloud(start: pd.Timestamp, end: pd.Timestamp) -> pd.DataFrame |
         node = js.get("data", {}).get(grp, {}).get(field, {})
         lst = node.get("list", {})
         if lst:
+            # Ecowitt reports a reading it does not have as "-" (the WS3910B has no
+            # solar or UV sensor, so every solar/uvi point is "-"); skip those.
             s = pd.Series({pd.to_datetime(int(k), unit="s", utc=True): float(v)
-                           for k, v in lst.items()})
-            cols[canon] = s
+                           for k, v in lst.items() if v not in ("-", "")}, dtype=float)
+            if len(s):
+                cols[canon] = s
     if not cols:
         return None
     df = pd.DataFrame(cols)
