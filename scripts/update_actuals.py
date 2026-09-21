@@ -24,6 +24,9 @@ from paths import ACTUALS_PARQUET as PARQUET  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 
+CHUNK_D = 6      # Ecowitt returns 30-minute data only for requests spanning 7 days or less
+REFRESH_D = 7    # days re-read on every run, so coarse or late-arriving hours get replaced
+
 ECOWITT_FIELDS = {
     ("outdoor", "temperature"): "temp_f",
     ("outdoor", "humidity"): "humidity_pct",
@@ -73,6 +76,24 @@ def from_ecowitt_cloud(start: pd.Timestamp, end: pd.Timestamp) -> pd.DataFrame |
     if missing:
         print(f"ecowitt cloud unavailable: no value for {', '.join(missing)}")
         return None
+    # Ecowitt silently drops to one reading every 4 hours when a request spans more than
+    # 7 days (tested 2026-09-21: 7 days -> 30-minute points, 8 days -> 4-hourly). So
+    # fetch in chunks that stay inside that limit.
+    frames, t = [], start
+    while t < end:
+        chunk_end = min(t + pd.Timedelta(days=CHUNK_D), end)
+        df = _fetch_chunk(app_key, api_key, mac, t, chunk_end)
+        if df is not None:
+            frames.append(df)
+        t = chunk_end
+    if not frames:
+        return None
+    df = pd.concat(frames)
+    df = df[~df.index.duplicated(keep="last")].sort_index()
+    return df.resample("1h").mean()
+
+
+def _fetch_chunk(app_key, api_key, mac, start, end) -> pd.DataFrame | None:
     r = requests.get("https://api.ecowitt.net/api/v3/device/history", params={
         "application_key": app_key, "api_key": api_key, "mac": mac,
         "start_date": start.strftime("%Y-%m-%d %H:%M:%S"),
@@ -98,8 +119,7 @@ def from_ecowitt_cloud(start: pd.Timestamp, end: pd.Timestamp) -> pd.DataFrame |
                 cols[canon] = s
     if not cols:
         return None
-    df = pd.DataFrame(cols)
-    return df.resample("1h").mean()
+    return pd.DataFrame(cols)
 
 
 def from_home_assistant() -> bool:
@@ -124,8 +144,12 @@ def from_home_assistant() -> bool:
 def main() -> None:
     existing = pd.read_parquet(PARQUET)
     last = existing.dropna(how="all").index.max()
-    start = (last - pd.Timedelta(hours=2)).tz_convert("UTC")
     end = pd.Timestamp.now("UTC")
+    # Always re-read the trailing week as well, not just what is new since the last run.
+    # Overwriting it repairs hours that were saved coarse or incomplete - which is exactly
+    # what happened on 2026-09-21, when a 9-day request returned 4-hourly points.
+    start = min((last - pd.Timedelta(hours=2)).tz_convert("UTC"),
+                end - pd.Timedelta(days=REFRESH_D))
 
     new = from_ecowitt_cloud(start, end)
     if new is not None:

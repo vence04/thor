@@ -21,6 +21,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # the scorecard reads every published forecast.json from history
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -41,6 +43,11 @@ jobs:
         run: python scripts/bakeoff.py
       - name: Train + backtest
         run: python scripts/train.py
+
+      # Scores every forecast this repo published against what the station measured,
+      # bespoke versus raw, into data/scorecard.md and data/scorecard.json.
+      - name: Score published forecasts
+        run: python scripts/scorecard.py
 
       - name: Commit results
         run: |
