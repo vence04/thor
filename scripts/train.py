@@ -63,6 +63,14 @@ STALE_WINDOW_H = 24
 #    right correctors until the station has actually lived through a year.
 SEASONAL_SPAN_D = 365
 
+# Cross-validation above runs over the whole history, which is mostly summer, so a
+# corrector can win it while failing on the season it is actually being used in. On
+# 2026-09-21, scored against four days of live September readings, the ridge temperature
+# model was 7.6F too warm (MAE 7.58 vs raw 3.01): its slope on the regional forecast was
+# 0.67, pulling every forecast toward a 65.6F summer average. So the winner must also
+# beat raw on the most recent week, fitted only on data from before that week.
+RECENT_HOLDOUT_D = 7
+
 
 def load_pairs() -> pd.DataFrame:
     a = pd.read_parquet(ACTUALS_PARQUET)
@@ -258,10 +266,30 @@ def main() -> None:
         best = min(cand, key=cand.get)
         if best != "raw" and cand[best] > raw_mae * (1 - MIN_IMPROVEMENT):
             best = "raw"
+
+        recent = None
+        if best != "raw":
+            cut = df["ts"].max() - pd.Timedelta(days=RECENT_HOLDOUT_D)
+            tr, te = df[df["ts"] < cut], df[df["ts"] >= cut]
+            if len(te) >= 24 and len(tr) >= GATE_BIAS_H:
+                fit_predict = {
+                    "bias": lambda: make_bias(fc_col, actual_col, len(tr) >= GATE_BIAS_H * 2),
+                    "ridge": lambda: make_ridge(fc_col, actual_col, use_doy),
+                    "lgbm": lambda: make_lgbm(fc_col, actual_col, use_doy),
+                }[best]()
+                rec_mae = float(np.abs(fit_predict(tr, te) - te[actual_col].values).mean())
+                rec_raw = float((te[fc_col] - te[actual_col]).abs().mean())
+                recent = {"method": best, "mae": round(rec_mae, 3), "raw_mae": round(rec_raw, 3),
+                          "n": len(te)}
+                if rec_mae > rec_raw * (1 - MIN_IMPROVEMENT):
+                    print(f"  !! {actual_col}: {best} loses to raw over the last "
+                          f"{RECENT_HOLDOUT_D} days ({rec_mae:.2f} vs {rec_raw:.2f}) - shipping raw")
+                    best = "raw"
         params = fit_final(best, df, fc_col, actual_col, use_doy)
         result["variables"][actual_col] = {
             "fc_col": fc_col, "method": best, "n_train": n,
             "span_days": span_d, "use_doy": use_doy, "lgbm_eligible": seasoned,
+            "recent_holdout": recent,
             "last_actual": str(df["ts"].max()) if n else None,
             "cv_mae": {k: (None if np.isinf(v) else round(v, 3)) for k, v in cand.items()},
             "params": params,
