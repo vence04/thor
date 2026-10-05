@@ -1,478 +1,478 @@
 {
-  "generated_at": "2026-09-28T14:43:01.046449+00:00",
-  "forecasts_read": 198,
-  "actuals_end": "2026-09-28 13:00:00+00:00",
+  "generated_at": "2026-10-05T15:28:16.255604+00:00",
+  "forecasts_read": 197,
+  "actuals_end": "2026-10-05 14:00:00+00:00",
   "windows": {
     "last_7_days": {
       "temp_f": {
-        "pairs": 3333,
-        "hours": 166,
-        "bespoke_mae": 4.03,
-        "raw_mae": 4.28,
-        "bespoke_bias": 1.54,
-        "raw_bias": -3.14,
-        "improvement_pct": 5.8,
+        "pairs": 2618,
+        "hours": 167,
+        "bespoke_mae": 3.76,
+        "raw_mae": 2.38,
+        "bespoke_bias": 3.18,
+        "raw_bias": -0.34,
+        "improvement_pct": -58.2,
         "by_lead": {
           "0-6h": {
-            "pairs": 273,
-            "hours": 166,
-            "bespoke_mae": 4.15,
-            "raw_mae": 3.1,
-            "bespoke_bias": 2.42,
-            "raw_bias": -0.93,
-            "improvement_pct": -33.9
+            "pairs": 217,
+            "hours": 163,
+            "bespoke_mae": 3.73,
+            "raw_mae": 1.87,
+            "bespoke_bias": 3.26,
+            "raw_bias": -0.34,
+            "improvement_pct": -99.9
           },
           "6-24h": {
-            "pairs": 822,
-            "hours": 166,
-            "bespoke_mae": 4.28,
-            "raw_mae": 3.09,
-            "bespoke_bias": 2.68,
-            "raw_bias": -1.0,
-            "improvement_pct": -38.3
+            "pairs": 653,
+            "hours": 167,
+            "bespoke_mae": 3.92,
+            "raw_mae": 2.08,
+            "bespoke_bias": 3.51,
+            "raw_bias": 0.01,
+            "improvement_pct": -88.2
           },
           "24-48h": {
-            "pairs": 1129,
-            "hours": 166,
-            "bespoke_mae": 4.03,
-            "raw_mae": 3.72,
-            "bespoke_bias": 1.07,
-            "raw_bias": -2.45,
-            "improvement_pct": -8.2
+            "pairs": 882,
+            "hours": 167,
+            "bespoke_mae": 2.76,
+            "raw_mae": 2.28,
+            "bespoke_bias": 1.66,
+            "raw_bias": -0.28,
+            "improvement_pct": -21.3
           },
           "48-72h": {
-            "pairs": 1109,
-            "hours": 166,
-            "bespoke_mae": 3.82,
-            "raw_mae": 6.02,
-            "bespoke_bias": 0.95,
-            "raw_bias": -5.97,
-            "improvement_pct": 36.5
+            "pairs": 866,
+            "hours": 167,
+            "bespoke_mae": 4.67,
+            "raw_mae": 2.84,
+            "bespoke_bias": 4.46,
+            "raw_bias": -0.66,
+            "improvement_pct": -64.8
           }
         }
       },
       "humidity_pct": {
-        "pairs": 3333,
-        "hours": 166,
-        "bespoke_mae": 11.41,
-        "raw_mae": 11.85,
-        "bespoke_bias": -4.87,
-        "raw_bias": -5.81,
-        "improvement_pct": 3.7,
+        "pairs": 2618,
+        "hours": 167,
+        "bespoke_mae": 9.05,
+        "raw_mae": 7.56,
+        "bespoke_bias": -6.47,
+        "raw_bias": -4.89,
+        "improvement_pct": -19.7,
         "by_lead": {
           "0-6h": {
-            "pairs": 273,
-            "hours": 166,
-            "bespoke_mae": 10.87,
-            "raw_mae": 10.9,
-            "bespoke_bias": -9.77,
-            "raw_bias": -9.86,
-            "improvement_pct": 0.3
+            "pairs": 217,
+            "hours": 163,
+            "bespoke_mae": 10.51,
+            "raw_mae": 8.02,
+            "bespoke_bias": -9.1,
+            "raw_bias": -7.05,
+            "improvement_pct": -31.0
           },
           "6-24h": {
-            "pairs": 822,
-            "hours": 166,
-            "bespoke_mae": 13.87,
-            "raw_mae": 14.6,
-            "bespoke_bias": -12.44,
-            "raw_bias": -13.18,
-            "improvement_pct": 5.0
+            "pairs": 653,
+            "hours": 167,
+            "bespoke_mae": 10.35,
+            "raw_mae": 8.92,
+            "bespoke_bias": -8.51,
+            "raw_bias": -7.79,
+            "improvement_pct": -16.0
           },
           "24-48h": {
-            "pairs": 1129,
-            "hours": 166,
-            "bespoke_mae": 11.71,
-            "raw_mae": 12.69,
-            "bespoke_bias": -7.35,
-            "raw_bias": -9.0,
-            "improvement_pct": 7.8
+            "pairs": 882,
+            "hours": 167,
+            "bespoke_mae": 9.31,
+            "raw_mae": 7.99,
+            "bespoke_bias": -7.06,
+            "raw_bias": -5.92,
+            "improvement_pct": -16.6
           },
           "48-72h": {
-            "pairs": 1109,
-            "hours": 166,
-            "bespoke_mae": 9.41,
-            "raw_mae": 9.18,
-            "bespoke_bias": 4.48,
-            "raw_bias": 3.89,
-            "improvement_pct": -2.6
+            "pairs": 866,
+            "hours": 167,
+            "bespoke_mae": 7.42,
+            "raw_mae": 5.97,
+            "bespoke_bias": -3.68,
+            "raw_bias": -1.13,
+            "improvement_pct": -24.3
           }
         }
       },
       "dewpoint_f": {
-        "pairs": 3333,
-        "hours": 166,
-        "bespoke_mae": 4.69,
-        "raw_mae": 5.75,
-        "bespoke_bias": -3.91,
-        "raw_bias": -5.38,
-        "improvement_pct": 18.5,
+        "pairs": 2618,
+        "hours": 167,
+        "bespoke_mae": 2.01,
+        "raw_mae": 2.5,
+        "bespoke_bias": -0.18,
+        "raw_bias": -1.91,
+        "improvement_pct": 19.5,
         "by_lead": {
           "0-6h": {
-            "pairs": 273,
-            "hours": 166,
-            "bespoke_mae": 4.28,
-            "raw_mae": 5.36,
-            "bespoke_bias": -3.62,
-            "raw_bias": -5.08,
-            "improvement_pct": 20.1
+            "pairs": 217,
+            "hours": 163,
+            "bespoke_mae": 2.21,
+            "raw_mae": 2.88,
+            "bespoke_bias": -0.87,
+            "raw_bias": -2.63,
+            "improvement_pct": 23.2
           },
           "6-24h": {
-            "pairs": 822,
-            "hours": 166,
-            "bespoke_mae": 5.31,
-            "raw_mae": 6.57,
-            "bespoke_bias": -4.89,
-            "raw_bias": -6.38,
-            "improvement_pct": 19.2
+            "pairs": 653,
+            "hours": 167,
+            "bespoke_mae": 2.15,
+            "raw_mae": 2.91,
+            "bespoke_bias": -0.74,
+            "raw_bias": -2.52,
+            "improvement_pct": 26.0
           },
           "24-48h": {
-            "pairs": 1129,
-            "hours": 166,
-            "bespoke_mae": 5.04,
-            "raw_mae": 6.19,
-            "bespoke_bias": -4.47,
-            "raw_bias": -5.94,
-            "improvement_pct": 18.6
+            "pairs": 882,
+            "hours": 167,
+            "bespoke_mae": 1.8,
+            "raw_mae": 2.52,
+            "bespoke_bias": -0.42,
+            "raw_bias": -2.15,
+            "improvement_pct": 28.4
           },
           "48-72h": {
-            "pairs": 1109,
-            "hours": 166,
-            "bespoke_mae": 3.96,
-            "raw_mae": 4.79,
-            "bespoke_bias": -2.67,
-            "raw_bias": -4.15,
-            "improvement_pct": 17.3
+            "pairs": 866,
+            "hours": 167,
+            "bespoke_mae": 2.06,
+            "raw_mae": 2.06,
+            "bespoke_bias": 0.66,
+            "raw_bias": -1.04,
+            "improvement_pct": 0.2
           }
         }
       },
       "wind_mph": {
-        "pairs": 3333,
-        "hours": 166,
-        "bespoke_mae": 3.05,
-        "raw_mae": 5.09,
-        "bespoke_bias": 2.94,
-        "raw_bias": 5.08,
-        "improvement_pct": 40.1,
+        "pairs": 2618,
+        "hours": 167,
+        "bespoke_mae": 2.35,
+        "raw_mae": 3.05,
+        "bespoke_bias": 1.81,
+        "raw_bias": 2.96,
+        "improvement_pct": 22.8,
         "by_lead": {
           "0-6h": {
-            "pairs": 273,
-            "hours": 166,
-            "bespoke_mae": 4.53,
-            "raw_mae": 6.18,
-            "bespoke_bias": 4.53,
-            "raw_bias": 6.18,
-            "improvement_pct": 26.7
+            "pairs": 217,
+            "hours": 163,
+            "bespoke_mae": 2.31,
+            "raw_mae": 3.4,
+            "bespoke_bias": 2.14,
+            "raw_bias": 3.32,
+            "improvement_pct": 32.0
           },
           "6-24h": {
-            "pairs": 822,
-            "hours": 166,
-            "bespoke_mae": 4.55,
-            "raw_mae": 6.73,
-            "bespoke_bias": 4.55,
-            "raw_bias": 6.73,
-            "improvement_pct": 32.4
+            "pairs": 653,
+            "hours": 167,
+            "bespoke_mae": 2.82,
+            "raw_mae": 3.69,
+            "bespoke_bias": 2.68,
+            "raw_bias": 3.64,
+            "improvement_pct": 23.6
           },
           "24-48h": {
-            "pairs": 1129,
-            "hours": 166,
-            "bespoke_mae": 3.43,
-            "raw_mae": 5.83,
-            "bespoke_bias": 3.37,
-            "raw_bias": 5.82,
-            "improvement_pct": 41.1
+            "pairs": 882,
+            "hours": 167,
+            "bespoke_mae": 2.54,
+            "raw_mae": 3.28,
+            "bespoke_bias": 1.88,
+            "raw_bias": 3.2,
+            "improvement_pct": 22.4
           },
           "48-72h": {
-            "pairs": 1109,
-            "hours": 166,
-            "bespoke_mae": 1.19,
-            "raw_mae": 2.86,
-            "bespoke_bias": 0.91,
-            "raw_bias": 2.83,
-            "improvement_pct": 58.6
+            "pairs": 866,
+            "hours": 167,
+            "bespoke_mae": 1.81,
+            "raw_mae": 2.24,
+            "bespoke_bias": 1.01,
+            "raw_bias": 2.12,
+            "improvement_pct": 19.2
           }
         }
       },
       "gust_mph": {
-        "pairs": 3333,
-        "hours": 166,
-        "bespoke_mae": 3.34,
-        "raw_mae": 6.53,
-        "bespoke_bias": 1.63,
-        "raw_bias": 5.2,
-        "improvement_pct": 48.8,
+        "pairs": 2618,
+        "hours": 167,
+        "bespoke_mae": 3.02,
+        "raw_mae": 4.75,
+        "bespoke_bias": 1.75,
+        "raw_bias": 3.85,
+        "improvement_pct": 36.4,
         "by_lead": {
           "0-6h": {
-            "pairs": 273,
-            "hours": 166,
-            "bespoke_mae": 3.29,
-            "raw_mae": 7.55,
-            "bespoke_bias": 2.09,
-            "raw_bias": 7.44,
-            "improvement_pct": 56.4
+            "pairs": 217,
+            "hours": 163,
+            "bespoke_mae": 2.89,
+            "raw_mae": 5.35,
+            "bespoke_bias": 1.73,
+            "raw_bias": 4.9,
+            "improvement_pct": 46.1
           },
           "6-24h": {
-            "pairs": 822,
-            "hours": 166,
-            "bespoke_mae": 3.33,
-            "raw_mae": 8.92,
-            "bespoke_bias": 2.17,
-            "raw_bias": 8.77,
-            "improvement_pct": 62.6
+            "pairs": 653,
+            "hours": 167,
+            "bespoke_mae": 3.09,
+            "raw_mae": 5.69,
+            "bespoke_bias": 1.93,
+            "raw_bias": 5.31,
+            "improvement_pct": 45.7
           },
           "24-48h": {
-            "pairs": 1129,
-            "hours": 166,
-            "bespoke_mae": 3.36,
-            "raw_mae": 7.64,
-            "bespoke_bias": 1.97,
-            "raw_bias": 6.73,
-            "improvement_pct": 56.0
+            "pairs": 882,
+            "hours": 167,
+            "bespoke_mae": 3.09,
+            "raw_mae": 5.22,
+            "bespoke_bias": 1.89,
+            "raw_bias": 4.55,
+            "improvement_pct": 40.7
           },
           "48-72h": {
-            "pairs": 1109,
-            "hours": 166,
-            "bespoke_mae": 3.34,
-            "raw_mae": 3.38,
-            "bespoke_bias": 0.77,
-            "raw_bias": 0.43,
-            "improvement_pct": 1.3
+            "pairs": 866,
+            "hours": 167,
+            "bespoke_mae": 2.93,
+            "raw_mae": 3.41,
+            "bespoke_bias": 1.48,
+            "raw_bias": 1.77,
+            "improvement_pct": 14.3
           }
         }
       }
     },
     "last_28_days": {
       "temp_f": {
-        "pairs": 5244,
-        "hours": 261,
-        "bespoke_mae": 4.8,
-        "raw_mae": 3.94,
-        "bespoke_bias": 3.19,
-        "raw_bias": -2.6,
-        "improvement_pct": -21.7,
+        "pairs": 7881,
+        "hours": 429,
+        "bespoke_mae": 4.45,
+        "raw_mae": 3.42,
+        "bespoke_bias": 3.18,
+        "raw_bias": -1.85,
+        "improvement_pct": -29.9,
         "by_lead": {
           "0-6h": {
-            "pairs": 442,
-            "hours": 259,
-            "bespoke_mae": 5.04,
-            "raw_mae": 2.9,
-            "bespoke_bias": 3.97,
-            "raw_bias": -0.77,
-            "improvement_pct": -74.0
+            "pairs": 660,
+            "hours": 423,
+            "bespoke_mae": 4.61,
+            "raw_mae": 2.56,
+            "bespoke_bias": 3.73,
+            "raw_bias": -0.63,
+            "improvement_pct": -80.1
           },
           "6-24h": {
-            "pairs": 1328,
-            "hours": 261,
-            "bespoke_mae": 5.11,
-            "raw_mae": 2.94,
-            "bespoke_bias": 4.12,
-            "raw_bias": -0.85,
-            "improvement_pct": -74.0
+            "pairs": 1986,
+            "hours": 429,
+            "bespoke_mae": 4.71,
+            "raw_mae": 2.65,
+            "bespoke_bias": 3.91,
+            "raw_bias": -0.57,
+            "improvement_pct": -77.6
           },
           "24-48h": {
-            "pairs": 1776,
-            "hours": 261,
-            "bespoke_mae": 4.9,
-            "raw_mae": 3.44,
-            "bespoke_bias": 3.01,
-            "raw_bias": -2.03,
-            "improvement_pct": -42.3
+            "pairs": 2665,
+            "hours": 429,
+            "bespoke_mae": 4.18,
+            "raw_mae": 3.06,
+            "bespoke_bias": 2.55,
+            "raw_bias": -1.45,
+            "improvement_pct": -36.7
           },
           "48-72h": {
-            "pairs": 1698,
-            "hours": 261,
-            "bespoke_mae": 4.38,
-            "raw_mae": 5.52,
-            "bespoke_bias": 2.46,
-            "raw_bias": -5.03,
-            "improvement_pct": 20.6
+            "pairs": 2570,
+            "hours": 429,
+            "bespoke_mae": 4.47,
+            "raw_mae": 4.61,
+            "bespoke_bias": 3.12,
+            "raw_bias": -3.56,
+            "improvement_pct": 3.1
           }
         }
       },
       "humidity_pct": {
-        "pairs": 5225,
-        "hours": 260,
-        "bespoke_mae": 10.69,
-        "raw_mae": 10.87,
-        "bespoke_bias": -5.51,
-        "raw_bias": -6.32,
-        "improvement_pct": 1.6,
+        "pairs": 7862,
+        "hours": 428,
+        "bespoke_mae": 10.14,
+        "raw_mae": 9.76,
+        "bespoke_bias": -5.8,
+        "raw_bias": -5.81,
+        "improvement_pct": -3.9,
         "by_lead": {
           "0-6h": {
-            "pairs": 440,
-            "hours": 258,
-            "bespoke_mae": 10.62,
-            "raw_mae": 10.9,
-            "bespoke_bias": -9.01,
-            "raw_bias": -9.88,
-            "improvement_pct": 2.5
+            "pairs": 658,
+            "hours": 422,
+            "bespoke_mae": 10.57,
+            "raw_mae": 9.94,
+            "bespoke_bias": -9.03,
+            "raw_bias": -8.92,
+            "improvement_pct": -6.4
           },
           "6-24h": {
-            "pairs": 1323,
-            "hours": 260,
-            "bespoke_mae": 12.31,
-            "raw_mae": 13.2,
-            "bespoke_bias": -10.44,
-            "raw_bias": -12.14,
-            "improvement_pct": 6.7
+            "pairs": 1981,
+            "hours": 428,
+            "bespoke_mae": 11.64,
+            "raw_mae": 11.77,
+            "bespoke_bias": -9.77,
+            "raw_bias": -10.66,
+            "improvement_pct": 1.1
           },
           "24-48h": {
-            "pairs": 1770,
-            "hours": 260,
-            "bespoke_mae": 11.02,
-            "raw_mae": 11.47,
-            "bespoke_bias": -7.33,
-            "raw_bias": -8.69,
-            "improvement_pct": 3.9
+            "pairs": 2659,
+            "hours": 428,
+            "bespoke_mae": 10.44,
+            "raw_mae": 10.3,
+            "bespoke_bias": -7.2,
+            "raw_bias": -7.73,
+            "improvement_pct": -1.3
           },
           "48-72h": {
-            "pairs": 1692,
-            "hours": 260,
-            "bespoke_mae": 9.1,
-            "raw_mae": 8.41,
-            "bespoke_bias": 1.15,
-            "raw_bias": 1.62,
-            "improvement_pct": -8.3
+            "pairs": 2564,
+            "hours": 428,
+            "bespoke_mae": 8.55,
+            "raw_mae": 7.6,
+            "bespoke_bias": -0.45,
+            "raw_bias": 0.72,
+            "improvement_pct": -12.5
           }
         }
       },
       "dewpoint_f": {
-        "pairs": 5244,
-        "hours": 261,
-        "bespoke_mae": 4.33,
-        "raw_mae": 5.35,
-        "bespoke_bias": -3.58,
-        "raw_bias": -5.05,
-        "improvement_pct": 19.1,
+        "pairs": 7881,
+        "hours": 429,
+        "bespoke_mae": 3.55,
+        "raw_mae": 4.39,
+        "bespoke_bias": -2.45,
+        "raw_bias": -4.0,
+        "improvement_pct": 19.2,
         "by_lead": {
           "0-6h": {
-            "pairs": 442,
-            "hours": 259,
-            "bespoke_mae": 3.95,
-            "raw_mae": 5.04,
-            "bespoke_bias": -3.41,
-            "raw_bias": -4.85,
-            "improvement_pct": 21.6
+            "pairs": 660,
+            "hours": 423,
+            "bespoke_mae": 3.38,
+            "raw_mae": 4.33,
+            "bespoke_bias": -2.57,
+            "raw_bias": -4.11,
+            "improvement_pct": 22.0
           },
           "6-24h": {
-            "pairs": 1328,
-            "hours": 261,
-            "bespoke_mae": 4.68,
-            "raw_mae": 5.86,
-            "bespoke_bias": -4.2,
-            "raw_bias": -5.68,
-            "improvement_pct": 20.0
+            "pairs": 1986,
+            "hours": 429,
+            "bespoke_mae": 3.84,
+            "raw_mae": 4.88,
+            "bespoke_bias": -3.05,
+            "raw_bias": -4.63,
+            "improvement_pct": 21.2
           },
           "24-48h": {
-            "pairs": 1776,
-            "hours": 261,
-            "bespoke_mae": 4.6,
-            "raw_mae": 5.61,
-            "bespoke_bias": -3.89,
-            "raw_bias": -5.36,
-            "improvement_pct": 18.0
+            "pairs": 2665,
+            "hours": 429,
+            "bespoke_mae": 3.66,
+            "raw_mae": 4.58,
+            "bespoke_bias": -2.74,
+            "raw_bias": -4.29,
+            "improvement_pct": 19.9
           },
           "48-72h": {
-            "pairs": 1698,
-            "hours": 261,
-            "bespoke_mae": 3.87,
-            "raw_mae": 4.77,
-            "bespoke_bias": -2.82,
-            "raw_bias": -4.29,
-            "improvement_pct": 18.8
+            "pairs": 2570,
+            "hours": 429,
+            "bespoke_mae": 3.25,
+            "raw_mae": 3.85,
+            "bespoke_bias": -1.64,
+            "raw_bias": -3.18,
+            "improvement_pct": 15.4
           }
         }
       },
       "wind_mph": {
-        "pairs": 5244,
-        "hours": 261,
-        "bespoke_mae": 2.3,
-        "raw_mae": 4.35,
-        "bespoke_bias": 2.19,
-        "raw_bias": 4.33,
-        "improvement_pct": 47.2,
+        "pairs": 7881,
+        "hours": 429,
+        "bespoke_mae": 2.33,
+        "raw_mae": 3.93,
+        "bespoke_bias": 2.08,
+        "raw_bias": 3.88,
+        "improvement_pct": 40.7,
         "by_lead": {
           "0-6h": {
-            "pairs": 442,
-            "hours": 259,
-            "bespoke_mae": 3.15,
-            "raw_mae": 4.79,
-            "bespoke_bias": 3.1,
-            "raw_bias": 4.75,
-            "improvement_pct": 34.3
+            "pairs": 660,
+            "hours": 423,
+            "bespoke_mae": 2.87,
+            "raw_mae": 4.34,
+            "bespoke_bias": 2.78,
+            "raw_bias": 4.29,
+            "improvement_pct": 33.9
           },
           "6-24h": {
-            "pairs": 1328,
-            "hours": 261,
-            "bespoke_mae": 3.19,
-            "raw_mae": 5.39,
-            "bespoke_bias": 3.15,
-            "raw_bias": 5.38,
-            "improvement_pct": 40.8
+            "pairs": 1986,
+            "hours": 429,
+            "bespoke_mae": 3.09,
+            "raw_mae": 4.84,
+            "bespoke_bias": 3.01,
+            "raw_bias": 4.82,
+            "improvement_pct": 36.3
           },
           "24-48h": {
-            "pairs": 1776,
-            "hours": 261,
-            "bespoke_mae": 2.55,
-            "raw_mae": 4.9,
-            "bespoke_bias": 2.49,
-            "raw_bias": 4.89,
-            "improvement_pct": 47.9
+            "pairs": 2665,
+            "hours": 429,
+            "bespoke_mae": 2.56,
+            "raw_mae": 4.37,
+            "bespoke_bias": 2.31,
+            "raw_bias": 4.34,
+            "improvement_pct": 41.3
           },
           "48-72h": {
-            "pairs": 1698,
-            "hours": 261,
-            "bespoke_mae": 1.11,
-            "raw_mae": 2.85,
-            "bespoke_bias": 0.9,
-            "raw_bias": 2.82,
-            "improvement_pct": 60.9
+            "pairs": 2570,
+            "hours": 429,
+            "bespoke_mae": 1.35,
+            "raw_mae": 2.64,
+            "bespoke_bias": 0.94,
+            "raw_bias": 2.58,
+            "improvement_pct": 48.8
           }
         }
       },
       "gust_mph": {
-        "pairs": 5244,
-        "hours": 261,
-        "bespoke_mae": 3.49,
-        "raw_mae": 6.09,
-        "bespoke_bias": 2.36,
-        "raw_bias": 5.0,
-        "improvement_pct": 42.8,
+        "pairs": 7881,
+        "hours": 429,
+        "bespoke_mae": 3.33,
+        "raw_mae": 5.65,
+        "bespoke_bias": 2.16,
+        "raw_bias": 4.63,
+        "improvement_pct": 41.1,
         "by_lead": {
           "0-6h": {
-            "pairs": 442,
-            "hours": 259,
-            "bespoke_mae": 3.44,
-            "raw_mae": 6.65,
-            "bespoke_bias": 2.67,
-            "raw_bias": 6.12,
-            "improvement_pct": 48.2
+            "pairs": 660,
+            "hours": 423,
+            "bespoke_mae": 3.26,
+            "raw_mae": 6.23,
+            "bespoke_bias": 2.37,
+            "raw_bias": 5.73,
+            "improvement_pct": 47.6
           },
           "6-24h": {
-            "pairs": 1328,
-            "hours": 261,
-            "bespoke_mae": 3.49,
-            "raw_mae": 7.85,
-            "bespoke_bias": 2.72,
-            "raw_bias": 7.5,
-            "improvement_pct": 55.6
+            "pairs": 1986,
+            "hours": 429,
+            "bespoke_mae": 3.36,
+            "raw_mae": 7.15,
+            "bespoke_bias": 2.46,
+            "raw_bias": 6.79,
+            "improvement_pct": 53.0
           },
           "24-48h": {
-            "pairs": 1776,
-            "hours": 261,
-            "bespoke_mae": 3.62,
-            "raw_mae": 7.17,
-            "bespoke_bias": 2.7,
-            "raw_bias": 6.44,
-            "improvement_pct": 49.6
+            "pairs": 2665,
+            "hours": 429,
+            "bespoke_mae": 3.44,
+            "raw_mae": 6.53,
+            "bespoke_bias": 2.44,
+            "raw_bias": 5.82,
+            "improvement_pct": 47.3
           },
           "48-72h": {
-            "pairs": 1698,
-            "hours": 261,
-            "bespoke_mae": 3.36,
-            "raw_mae": 3.44,
-            "bespoke_bias": 1.64,
-            "raw_bias": 1.26,
-            "improvement_pct": 2.3
+            "pairs": 2570,
+            "hours": 429,
+            "bespoke_mae": 3.21,
+            "raw_mae": 3.42,
+            "bespoke_bias": 1.59,
+            "raw_bias": 1.43,
+            "improvement_pct": 6.3
           }
         }
       }
