@@ -33,7 +33,11 @@ MODELS = ["best_match", "ecmwf_ifs025", "gfs_seamless", "gfs_hrrr",
           "ncep_nbm_conus", "icon_seamless", "gem_seamless"]
 
 PREV_DAYS = 7
-PREV_MODELS = ["best_match", "ecmwf_ifs025", "gfs_seamless", "ncep_nbm_conus"]
+# Every model gets a previous-runs archive, not just four: a model without one cannot
+# be chosen as a variable's source, and the bake-off's wind and pressure winner
+# (gem_seamless) was being excluded for that reason alone. Verified 2026-10-12 that
+# the previous-runs API serves gem_seamless, icon_seamless and gfs_hrrr.
+PREV_MODELS = MODELS
 
 
 def get(url: str, params: dict, retries: int = 4) -> dict:

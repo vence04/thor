@@ -189,7 +189,12 @@ function render(){
       ? "The station correction is still <b>learning</b> — the station went fully outdoors in July 2026, " +
         "and the offset model turns on automatically once enough forecast-vs-station history accumulates. " :
       "Correction methods: <code>" + JSON.stringify(F.methods) + "</code>. ") +
-    "Forecast base: Open-Meteo (" + F.source_model + ") corrected against the Bear Paw Trail Ecowitt station. ⚡ Project Thor.";
+    "Forecast base: Open-Meteo — " +
+      (F.source_models
+        ? "each reading from whichever model forecasts it best here (" +
+          Object.entries(F.source_models).map(([k, v]) => k.replace(/_(f|pct|mph|hpa)$/, "") + ": " + v).join(", ") + ")"
+        : "(" + F.source_model + ")") +
+    " — corrected against the Bear Paw Trail Ecowitt station. ⚡ Project Thor.";
 }
 
 // The weekly scorecard: what the page actually published, against the station.

@@ -25,6 +25,10 @@ UNITS = {"temperature_unit": "fahrenheit", "wind_speed_unit": "mph", "precipitat
 # because its doy feature could not extrapolate. Never publish that: if a corrected
 # series varies far less than the raw one it came from, ship raw instead.
 COLLAPSE_RATIO = 0.30
+
+# A correction is a regression, so it can put a variable outside what it can physically
+# be: on 2026-10-12 the wind correction produced -0.2 mph. Clamp to the possible range.
+BOUNDS = {"wind_mph": (0, None), "gust_mph": (0, None), "humidity_pct": (0, 100)}
 SPREAD_DAYS = 28
 
 
@@ -107,10 +111,16 @@ def main() -> None:
     model = json.loads(MODEL_JSON.read_text(encoding="utf-8"))
     src = model.get("source_model", "best_match")
 
+    # Each variable comes from the model that forecasts it best at this site, as decided
+    # by the weekly bake-off; anything without a verdict falls back to `src`. Asking for
+    # several models in one call returns suffixed columns (temperature_2m_gem_seamless).
+    per_var = {v: x.get("source_model", src) for v, x in model["variables"].items()}
+    wanted = sorted({src, *per_var.values()})
+
     r = requests.get("https://api.open-meteo.com/v1/forecast", params={
         "latitude": LAT, "longitude": LON, "hourly": ",".join(HOURLY),
         "daily": "weather_code,sunrise,sunset",
-        "models": src, "forecast_days": 10, "timezone": "UTC", **UNITS}, timeout=60)
+        "models": ",".join(wanted), "forecast_days": 10, "timezone": "UTC", **UNITS}, timeout=60)
     r.raise_for_status()
     js = r.json()
 
@@ -120,19 +130,29 @@ def main() -> None:
     now = pd.Timestamp.now("UTC").floor("h")
     df = df[df.index >= now]
     lead = ((df.index - now) / pd.Timedelta("1D")).astype(int)
-    cloud = df.get("cloud_cover", pd.Series(50, index=df.index))
+    def pick(var: str, model_name: str) -> pd.Series | None:
+        """The column for `var` from `model_name`; plain name when only one was asked for."""
+        for key in (f"{var}_{model_name}", var):
+            if key in df:
+                return df[key]
+        return None
+
+    cloud = pick("cloud_cover", src)
+    if cloud is None:
+        cloud = pd.Series(50, index=df.index)
 
     spread = station_spread()
     out_hourly = pd.DataFrame(index=df.index)
     bands = {}
     for fc_col, out_name in OUT_VARS.items():
-        if fc_col not in df:
-            continue
         actual_col = next((k for k, v in model["variables"].items()
                            if v["fc_col"] == fc_col), None)
+        series = pick(fc_col, per_var.get(actual_col, src))
+        if series is None:
+            continue
         spec = model["variables"].get(actual_col, {"method": "raw"})
-        corrected = apply_correction(spec, df[fc_col], lead, df.index, cloud).round(1)
-        raw_series = df[fc_col].round(1)
+        corrected = apply_correction(spec, series, lead, df.index, cloud).round(1)
+        raw_series = series.round(1)
         raw_sd, cor_sd = float(raw_series.std()), float(corrected.std())
         # prefer the station's own spread as the yardstick; fall back to the forecast's
         # where the station has no matching column (pressure is stored in inHg, not hPa)
@@ -144,6 +164,9 @@ def main() -> None:
             corrected = raw_series
             spec = {"method": "raw"}
             model["variables"][actual_col]["method"] = "raw"
+        lo, hi = BOUNDS.get(out_name, (None, None))
+        if lo is not None or hi is not None:
+            corrected = corrected.clip(lower=lo, upper=hi)
         out_hourly[out_name] = corrected
         out_hourly[f"{out_name}_raw"] = raw_series
         b = spec.get("bands", {})
@@ -153,11 +176,11 @@ def main() -> None:
             hi = [b[str(min(int(l), max_l))][0] for l in lead]
             bands[out_name] = {"lo": (out_hourly[out_name] - np.array(lo)).round(1).tolist(),
                                "hi": (out_hourly[out_name] - np.array(hi)).round(1).tolist()}
-    out_hourly["precip_in"] = df["precipitation"].round(3)
-    out_hourly["precip_prob"] = df.get("precipitation_probability")
+    out_hourly["precip_in"] = pick("precipitation", src).round(3)
+    out_hourly["precip_prob"] = pick("precipitation_probability", src)
     out_hourly["cloud_pct"] = cloud
-    out_hourly["wind_dir_deg"] = df.get("wind_direction_10m")
-    out_hourly["weather_code"] = df.get("weather_code")
+    out_hourly["wind_dir_deg"] = pick("wind_direction_10m", src)
+    out_hourly["weather_code"] = pick("weather_code", src)
 
     # daily rollup from corrected hourlies (local time days)
     local = out_hourly.tz_convert("America/New_York")
@@ -214,6 +237,7 @@ def main() -> None:
         "generated_at": pd.Timestamp.now("UTC").isoformat(),
         "location": {"lat": LAT, "lon": LON, "name": "Bear Paw Trail, Littleton NH"},
         "source_model": src,
+        "source_models": per_var,
         "model_trained_at": model.get("trained_at"),
         "methods": {k: v["method"] for k, v in model["variables"].items()},
         "n_train": {k: v["n_train"] for k, v in model["variables"].items()},

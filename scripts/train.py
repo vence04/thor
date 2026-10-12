@@ -29,7 +29,12 @@ MODEL_DIR = MODEL_DIR
 OUTDOOR_START = pd.Timestamp("2026-07-13T19:00:00Z")
 INHG_TO_HPA = 33.8639
 
-SOURCE_MODEL = "best_match"  # per-variable override comes from bakeoff once data suffices
+SOURCE_MODEL = "best_match"   # fallback only; the per-variable choice comes from the bake-off
+
+# The bake-off has always ranked the seven models against the station, and nothing read
+# the result: every variable came from best_match, which on 2026-10-12 lost on all of
+# them (pressure by 41%, gusts 28%, wind 27%, dew point 22%, humidity 9%, temp 7%).
+# Each variable now comes from the model that actually forecasts it best here.
 
 # actual col -> (day0/forecast col, uses_full_history)
 VARS = {
@@ -82,15 +87,26 @@ PUBLISHED_MIN_SHARE = 0.5    # the method must have produced most of those forec
 PUBLISHED_MIN_HOURS = 72     # ...over at least this many hours, or it is not evidence
 
 
-def load_pairs() -> pd.DataFrame:
+def source_models() -> dict:
+    """Which model each variable is taken from, as decided by the latest bake-off."""
+    path = REPORTS_DIR / "source_models.json"
+    if not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8")).get("by_variable", {})
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+
+def load_pairs(model: str = SOURCE_MODEL) -> pd.DataFrame:
     a = pd.read_parquet(ACTUALS_PARQUET)
     a["pressure_abs_hpa"] = a["pressure_abs_inhg"] * INHG_TO_HPA
 
     frames = []
-    d0 = pd.read_parquet(FORECAST_DIR / f"day0_{SOURCE_MODEL}.parquet")
+    d0 = pd.read_parquet(FORECAST_DIR / f"day0_{model}.parquet")
     d0 = d0.assign(lead_d=0)
     frames.append(d0.reset_index())
-    prev = FORECAST_DIR / f"prevruns_{SOURCE_MODEL}.parquet"
+    prev = FORECAST_DIR / f"prevruns_{model}.parquet"
     if prev.exists():
         frames.append(pd.read_parquet(prev).drop(columns=["model"], errors="ignore"))
     fc = pd.concat(frames, ignore_index=True)
@@ -245,6 +261,17 @@ def residual_bands(method_params, method, df, fc_col, actual_col):
 
 
 def main() -> None:
+    chosen = source_models()
+    pair_cache: dict[str, pd.DataFrame] = {}
+
+    def pairs_for(variable: str) -> tuple[pd.DataFrame, str]:
+        model = chosen.get(variable, SOURCE_MODEL)
+        if not (FORECAST_DIR / f"day0_{model}.parquet").exists():
+            model = SOURCE_MODEL
+        if model not in pair_cache:
+            pair_cache[model] = load_pairs(model)
+        return pair_cache[model], model
+
     pairs = load_pairs()
     actuals = pd.read_parquet(ACTUALS_PARQUET)
     actuals["pressure_abs_hpa"] = actuals["pressure_abs_inhg"] * INHG_TO_HPA
@@ -258,6 +285,7 @@ def main() -> None:
               f"Winner must beat raw MAE by >{MIN_IMPROVEMENT:.0%}.", ""]
 
     for actual_col, (fc_col, full_hist) in VARS.items():
+        pairs, src = pairs_for(actual_col)
         df = pairs[["ts", "lead_d", fc_col, actual_col]
                    + (["cloud_cover"] if "cloud_cover" in pairs else [])].dropna(
                        subset=[fc_col, actual_col])
@@ -331,6 +359,7 @@ def main() -> None:
         params = fit_final(best, df, fc_col, actual_col, use_doy)
         result["variables"][actual_col] = {
             "fc_col": fc_col, "method": best, "n_train": n,
+            "source_model": src,
             "span_days": span_d, "use_doy": use_doy, "lgbm_eligible": seasoned,
             "recent_holdout": recent,
             "last_actual": str(df["ts"].max()) if n else None,
@@ -344,7 +373,7 @@ def main() -> None:
         for k, v in cand.items():
             report.append(f"| {k} | {v:.3f} |")
         report.append("")
-        print(f"{actual_col:18s} n={n:6d} span={span_d:4d}d doy={int(use_doy)} -> {best:5s}  " +
+        print(f"{actual_col:18s} [{src:14s}] n={n:6d} span={span_d:4d}d doy={int(use_doy)} -> {best:5s}  " +
               " ".join(f"{k}={v:.3f}" for k, v in cand.items() if not np.isinf(v)))
 
     (MODEL_DIR / "model.json").write_text(json.dumps(result, indent=2), encoding="utf-8")

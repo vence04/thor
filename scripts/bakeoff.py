@@ -3,6 +3,7 @@
 Produces reports/source_bakeoff.md with MAE/bias per variable per model (day-0 skill,
 11 months) and MAE by lead day 1-7 (previous-runs, 90 days).
 """
+import json
 import sys
 from pathlib import Path
 
@@ -125,6 +126,14 @@ def main() -> None:
     (REPORTS_DIR).mkdir(exist_ok=True)
     (REPORTS_DIR / "source_bakeoff.md").write_text("\n".join(out), encoding="utf-8")
     day0.to_csv(REPORTS_DIR / "day0_scores.csv", index=False)
+    # The verdict, where train.py can read it. Until 2026-10-12 the bake-off ranked seven
+    # models every week and nothing used the answer: every variable was taken from
+    # best_match, which lost on all of them (pressure by 41%, gusts 28%, wind 27%).
+    winners = (day0.loc[day0.groupby("variable")["mae"].idxmin()]
+                   .set_index("variable")["model"].to_dict())
+    (REPORTS_DIR / "source_models.json").write_text(
+        json.dumps({"chosen_at": pd.Timestamp.now("UTC").isoformat(), "by_variable": winners},
+                   indent=2), encoding="utf-8")
     leads.to_csv(REPORTS_DIR / "lead_scores.csv", index=False)
     print("day-0 winners by variable:")
     print(day0.loc[day0.groupby("variable")["mae"].idxmin()][["variable", "model", "mae", "bias"]].to_string(index=False))
