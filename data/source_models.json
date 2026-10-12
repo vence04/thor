@@ -1,0 +1,12 @@
+{
+  "chosen_at": "2026-10-12T18:03:58.707865+00:00",
+  "by_variable": {
+    "dewpoint_f": "ncep_nbm_conus",
+    "gust_mph": "ncep_nbm_conus",
+    "humidity_pct": "ecmwf_ifs025",
+    "precip_in": "best_match",
+    "pressure_abs_hpa": "gem_seamless",
+    "temp_f": "ecmwf_ifs025",
+    "wind_mph": "gem_seamless"
+  }
+}
