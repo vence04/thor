@@ -41,13 +41,14 @@ jobs:
         run: python scripts/fetch_archived_forecasts.py
       - name: Source bake-off
         run: python scripts/bakeoff.py
-      - name: Train + backtest
-        run: python scripts/train.py
-
-      # Scores every forecast this repo published against what the station measured,
-      # bespoke versus raw, into data/scorecard.md and data/scorecard.json.
+      # Runs BEFORE training: the gate in train.py reads data/scorecard.json to see how
+      # each correction actually performed in the forecasts readers were served, and
+      # stale evidence would let a losing correction back in for another week.
       - name: Score published forecasts
         run: python scripts/scorecard.py
+
+      - name: Train + backtest
+        run: python scripts/train.py
 
       - name: Commit results
         run: |

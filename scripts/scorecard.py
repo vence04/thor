@@ -49,6 +49,7 @@ def pairs(forecasts: list[dict], actuals: pd.DataFrame) -> pd.DataFrame:
     rows = []
     for f in forecasts:
         issued = pd.Timestamp(f["generated_at"])
+        methods = f.get("methods", {})
         h = f.get("hourly", {})
         for i, ts in enumerate(h.get("ts", [])):
             t = pd.Timestamp(ts)
@@ -60,14 +61,21 @@ def pairs(forecasts: list[dict], actuals: pd.DataFrame) -> pd.DataFrame:
                 bes, raw = (h.get(v) or [None])[i:i + 1], (h.get(v + "_raw") or [None])[i:i + 1]
                 if pd.isna(act) or not bes or not raw or bes[0] is None or raw[0] is None:
                     continue
-                rows.append((v, t, lead, float(act), float(bes[0]), float(raw[0])))
-    return pd.DataFrame(rows, columns=["var", "ts", "lead_h", "actual", "bespoke", "raw"])
+                rows.append((v, t, lead, float(act), float(bes[0]), float(raw[0]),
+                             methods.get(v, "raw")))
+    return pd.DataFrame(rows, columns=["var", "ts", "lead_h", "actual", "bespoke", "raw",
+                                       "method"])
 
 
 def summarise(d: pd.DataFrame) -> dict:
     be, re = d.bespoke - d.actual, d.raw - d.actual
     b_mae, r_mae = float(be.abs().mean()), float(re.abs().mean())
+    # which correction actually produced these forecasts, so the retrain's gate can tell
+    # whether this result is evidence about the method it is considering
+    shares = (d.method.value_counts(normalize=True).round(3).to_dict()
+              if "method" in d else {})
     return {"pairs": int(len(d)), "hours": int(d.ts.nunique()),
+            "published_methods": shares,
             "bespoke_mae": round(b_mae, 2), "raw_mae": round(r_mae, 2),
             "bespoke_bias": round(float(be.mean()), 2), "raw_bias": round(float(re.mean()), 2),
             "improvement_pct": round(100 * (1 - b_mae / r_mae), 1) if r_mae else None}

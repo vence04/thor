@@ -71,6 +71,16 @@ SEASONAL_SPAN_D = 365
 # beat raw on the most recent week, fitted only on data from before that week.
 RECENT_HOLDOUT_D = 7
 
+# The holdout above scores candidates on ARCHIVED forecasts. What readers actually get
+# is the published forecast, at the mix of lead times the page shows, and the two
+# disagree: on 2026-10-12 the archive holdout said the temperature offset beat raw
+# (4.08 vs 4.41) while the published record said it had run 20% worse and +2.23F too
+# warm over 28 days. The published record wins - it is the real outcome - so where the
+# scorecard has enough evidence about THIS method, it can veto shipping it.
+PUBLISHED_WINDOW = "last_28_days"
+PUBLISHED_MIN_SHARE = 0.5    # the method must have produced most of those forecasts
+PUBLISHED_MIN_HOURS = 72     # ...over at least this many hours, or it is not evidence
+
 
 def load_pairs() -> pd.DataFrame:
     a = pd.read_parquet(ACTUALS_PARQUET)
@@ -86,6 +96,28 @@ def load_pairs() -> pd.DataFrame:
     fc = pd.concat(frames, ignore_index=True)
     fc["ts"] = pd.to_datetime(fc["ts"], utc=True)
     return fc.merge(a, left_on="ts", right_index=True, how="inner")
+
+
+def published_verdict(actual_col: str, method: str) -> dict | None:
+    """What the last scorecard says about THIS correction, as published.
+
+    Returns None unless the scorecard covers enough hours and the method being
+    considered is the one that actually produced most of those forecasts - a result
+    earned by `raw` says nothing about whether `ridge` should ship.
+    """
+    path = REPORTS_DIR / "scorecard.json"
+    if not path.exists():
+        return None
+    try:
+        card = json.loads(path.read_text(encoding="utf-8"))
+        s = card["windows"][PUBLISHED_WINDOW][actual_col]
+    except (json.JSONDecodeError, KeyError, OSError):
+        return None
+    share = (s.get("published_methods") or {}).get(method, 0)
+    if s.get("hours", 0) < PUBLISHED_MIN_HOURS or share < PUBLISHED_MIN_SHARE:
+        return None
+    return {"improvement_pct": s.get("improvement_pct"), "hours": s["hours"],
+            "share": share, "bespoke_mae": s.get("bespoke_mae"), "raw_mae": s.get("raw_mae")}
 
 
 def frozen_hours(actuals: pd.DataFrame, col: str) -> pd.DatetimeIndex:
@@ -285,6 +317,17 @@ def main() -> None:
                     print(f"  !! {actual_col}: {best} loses to raw over the last "
                           f"{RECENT_HOLDOUT_D} days ({rec_mae:.2f} vs {rec_raw:.2f}) - shipping raw")
                     best = "raw"
+
+        # Published record overrules the archive holdout where it has evidence on this method
+        published = published_verdict(actual_col, best) if best != "raw" else None
+        if published and (published["improvement_pct"] or 0) < MIN_IMPROVEMENT * 100:
+            print(f"  !! {actual_col}: {best} was published for "
+                  f"{published['share']:.0%} of the last {PUBLISHED_WINDOW.replace('last_','').replace('_',' ')} "
+                  f"and scored {published['improvement_pct']:+.1f}% against raw "
+                  f"({published['bespoke_mae']} vs {published['raw_mae']}, "
+                  f"{published['hours']}h) - shipping raw")
+            best = "raw"
+            recent = dict(recent or {}, published=published)
         params = fit_final(best, df, fc_col, actual_col, use_doy)
         result["variables"][actual_col] = {
             "fc_col": fc_col, "method": best, "n_train": n,
