@@ -14,7 +14,7 @@ import requests
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from paths import MODEL_DIR, MODEL_JSON, FORECAST_JSON as OUT_PATH  # noqa: E402
+from paths import ACTUALS_PARQUET, MODEL_DIR, MODEL_JSON, FORECAST_JSON as OUT_PATH  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 LAT, LON = 44.3205501, -71.7438537
@@ -25,6 +25,26 @@ UNITS = {"temperature_unit": "fahrenheit", "wind_speed_unit": "mph", "precipitat
 # because its doy feature could not extrapolate. Never publish that: if a corrected
 # series varies far less than the raw one it came from, ship raw instead.
 COLLAPSE_RATIO = 0.30
+SPREAD_DAYS = 28
+
+
+def station_spread(days: int = SPREAD_DAYS) -> dict:
+    """How much each reading actually varies at the station, over the last few weeks.
+
+    The collapse guard below compares a correction against this, not against the
+    regional forecast's spread. At a sheltered site the station genuinely varies less
+    than the model thinks - on 2026-10-12 station wind had sd 1.37 against the
+    forecast's 2.16 - so judging the correction against the forecast discarded the best
+    result this project has, wind measured 23-41% better than raw, for looking "too
+    flat". A real collapse still fails: a flat line has sd near zero against either.
+    """
+    try:
+        a = pd.read_parquet(ACTUALS_PARQUET)
+    except Exception:
+        return {}
+    a = a[a.index >= a.index.max() - pd.Timedelta(days=days)]
+    return {c: float(a[c].std()) for c in a.columns
+            if a[c].notna().sum() >= 24 and pd.notna(a[c].std())}
 
 HOURLY = ["temperature_2m", "relative_humidity_2m", "dew_point_2m", "wind_speed_10m",
           "wind_gusts_10m", "wind_direction_10m", "precipitation", "precipitation_probability",
@@ -98,6 +118,7 @@ def main() -> None:
     lead = ((df.index - now) / pd.Timedelta("1D")).astype(int)
     cloud = df.get("cloud_cover", pd.Series(50, index=df.index))
 
+    spread = station_spread()
     out_hourly = pd.DataFrame(index=df.index)
     bands = {}
     for fc_col, out_name in OUT_VARS.items():
@@ -109,9 +130,13 @@ def main() -> None:
         corrected = apply_correction(spec, df[fc_col], lead, df.index, cloud).round(1)
         raw_series = df[fc_col].round(1)
         raw_sd, cor_sd = float(raw_series.std()), float(corrected.std())
-        if spec.get("method", "raw") != "raw" and raw_sd > 0 and cor_sd < COLLAPSE_RATIO * raw_sd:
-            print(f"WARN: {out_name} correction collapsed (sd {cor_sd:.2f} vs raw {raw_sd:.2f}) "
-                  f"- publishing raw for this variable")
+        # prefer the station's own spread as the yardstick; fall back to the forecast's
+        # where the station has no matching column (pressure is stored in inHg, not hPa)
+        ref_sd = spread.get(actual_col, raw_sd)
+        ref_name = "station" if actual_col in spread else "raw"
+        if spec.get("method", "raw") != "raw" and ref_sd > 0 and cor_sd < COLLAPSE_RATIO * ref_sd:
+            print(f"WARN: {out_name} correction collapsed (sd {cor_sd:.2f} vs {ref_name} "
+                  f"{ref_sd:.2f}) - publishing raw for this variable")
             corrected = raw_series
             spec = {"method": "raw"}
             model["variables"][actual_col]["method"] = "raw"

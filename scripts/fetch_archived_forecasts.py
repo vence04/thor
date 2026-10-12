@@ -44,7 +44,14 @@ def get(url: str, params: dict, retries: int = 4) -> dict:
             time.sleep(10 * (i + 1))
             continue
         if r.status_code == 200:
-            return r.json()
+            try:
+                return r.json()
+            except ValueError:
+                # A 200 whose body is not JSON - a truncated reply or an HTML error page.
+                # Transient: one killed the weekly retrain on 2026-10-12 while the API was
+                # otherwise healthy. Retry rather than crashing the whole run.
+                time.sleep(10 * (i + 1))
+                continue
         if r.status_code in (429, 500, 502, 503):
             time.sleep(10 * (i + 1))
             continue
