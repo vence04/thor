@@ -40,7 +40,11 @@ def station_spread(days: int = SPREAD_DAYS) -> dict:
     """
     try:
         a = pd.read_parquet(ACTUALS_PARQUET)
-    except Exception:
+    except Exception as exc:
+        # Say so rather than degrading quietly: a missing pyarrow did exactly that on
+        # 2026-10-12 and the guard went on rejecting the wind correction unnoticed.
+        print(f"WARN: cannot read station history for the collapse guard ({exc}); "
+              f"falling back to the forecast's own spread")
         return {}
     a = a[a.index >= a.index.max() - pd.Timedelta(days=days)]
     return {c: float(a[c].std()) for c in a.columns

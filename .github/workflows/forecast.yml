@@ -28,7 +28,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -q pandas numpy requests lightgbm
+      # pyarrow is needed to read the station history, which the collapse guard in
+      # predict.py measures a correction against. Without it the guard silently fell
+      # back to the forecast's own spread and rejected the wind correction every run.
+      - run: pip install -q pandas numpy requests lightgbm pyarrow
       - name: Generate corrected forecast
         run: python scripts/predict.py
       - name: Commit forecast
