@@ -60,6 +60,13 @@ FULL_HISTORY_VARS = {"pressure_abs_hpa"}
 # 2.2x. Choosing it on raw error would have thrown away the signal and kept the shape.
 CORRECTED_HOLDOUT = 0.30   # the last 30% of the site record, never fitted on
 MIN_HOLDOUT_H = 200
+# A challenger must be clearly better, not better by a rounding error. Two runs 45
+# minutes apart on 2026-10-17 swapped dew point between ncep_nbm_conus and a blend
+# containing it, and gusts between two blends differing by 0.07 mph. Switching source
+# costs a week of the corrector being fitted to something else, so a tie should stay
+# put. Measured on the same holdout, the top six temperature candidates sit inside
+# 0.1F of each other - that is the regime this guards.
+SWITCH_MARGIN = 0.03       # 3% better, on the criterion in use
 
 REGIONAL_DIR = FORECAST_DIR / "regional"
 REGIONAL_OBS = ACTUALS_DIR / "obs_hie.parquet"
@@ -270,6 +277,13 @@ def choose_sources(site: pd.DataFrame, regional: pd.DataFrame, current: dict) ->
                          f"({pool.at[incumbent, col]:.2f} {basis}{seen})")
             continue
         r_new, r_old = pool.at[challenger, rcol], pool.at[incumbent, rcol]
+        gain = 1 - pool.at[challenger, col] / pool.at[incumbent, col]             if pool.at[incumbent, col] else 0
+        if gain < SWITCH_MARGIN:
+            chosen[var] = incumbent
+            notes.append(f"{var}: keeping {C.label(incumbent)} "
+                         f"({pool.at[incumbent, col]:.2f} {basis}); {C.label(challenger)} "
+                         f"is only {gain:.1%} better, under the {SWITCH_MARGIN:.0%} margin")
+            continue
         if pd.notna(r_new) and pd.notna(r_old) and r_new < r_old:
             chosen[var] = challenger
             notes.append(f"{var}: switching {C.label(incumbent)} -> {C.label(challenger)} "

@@ -115,8 +115,13 @@ def fetch_prev_runs() -> None:
     """Previous Runs API keeps ~90 days of history for _previous_dayN variables."""
     end = END or pd.Timestamp.now("UTC").strftime("%Y-%m-%d")
     start = (pd.Timestamp(end) - pd.Timedelta(days=90)).strftime("%Y-%m-%d")
+    # dew_point_2m was missing here until 2026-10-17, so dew point had only the 1,492
+    # day-0 pairs where temperature had 11,068 - and the source choice for it churned
+    # between two runs 45 minutes apart purely on small-sample noise. The previous-runs
+    # API does serve it (checked that day); surface_pressure it does not, so pressure
+    # stays day-0 only.
     core = ["temperature_2m", "wind_speed_10m", "wind_gusts_10m", "precipitation",
-            "relative_humidity_2m", "cloud_cover"]
+            "relative_humidity_2m", "cloud_cover", "dew_point_2m"]
     for model in PREV_MODELS:
         hourly = [f"{v}_previous_day{d}" for v in core for d in range(1, PREV_DAYS + 1)]
         js = get("https://previous-runs-api.open-meteo.com/v1/forecast", {
