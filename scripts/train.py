@@ -21,6 +21,7 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import candidates as C  # noqa: E402
 from paths import (ACTUALS_DIR, ACTUALS_PARQUET, FORECAST_DIR, MODEL_DIR,
                    MODEL_JSON, REPORTS_DIR, ensure_dirs)  # noqa: E402
 
@@ -105,19 +106,40 @@ def source_models() -> dict:
         return {}
 
 
-def load_pairs(model: str = SOURCE_MODEL) -> pd.DataFrame:
-    a = pd.read_parquet(ACTUALS_PARQUET)
-    a["pressure_abs_hpa"] = a["pressure_abs_inhg"] * INHG_TO_HPA
-
-    frames = []
-    d0 = pd.read_parquet(FORECAST_DIR / f"day0_{model}.parquet")
-    d0 = d0.assign(lead_d=0)
-    frames.append(d0.reset_index())
+def _archive(model: str) -> pd.DataFrame | None:
+    """One model's day-0 and previous-runs archives, stacked, keyed by ts and lead."""
+    d0path = FORECAST_DIR / f"day0_{model}.parquet"
+    if not d0path.exists():
+        return None
+    frames = [pd.read_parquet(d0path).assign(lead_d=0).reset_index()]
     prev = FORECAST_DIR / f"prevruns_{model}.parquet"
     if prev.exists():
         frames.append(pd.read_parquet(prev).drop(columns=["model"], errors="ignore"))
-    fc = pd.concat(frames, ignore_index=True)
+    fc = C.numeric(pd.concat(frames, ignore_index=True))
     fc["ts"] = pd.to_datetime(fc["ts"], utc=True)
+    return fc.groupby(["ts", "lead_d"], as_index=False).first()
+
+
+def load_pairs(source: str = SOURCE_MODEL) -> pd.DataFrame:
+    """(forecast, actual) pairs for one source - a single model, or a blend of them.
+
+    A blend is averaged per timestamp and lead before it meets the actuals, so the
+    corrector is fitted on exactly the series predict.py will publish. Members with no
+    archive are skipped; if none has one, the caller gets an empty frame and falls
+    back the same way it would for a model with no data.
+    """
+    a = pd.read_parquet(ACTUALS_PARQUET)
+    a["pressure_abs_hpa"] = a["pressure_abs_inhg"] * INHG_TO_HPA
+
+    parts = [f for f in (_archive(m) for m in C.members(source)) if f is not None]
+    if not parts:
+        return pd.DataFrame()
+    if len(parts) == 1:
+        fc = parts[0]
+    else:
+        stacked = pd.concat(parts, ignore_index=True)
+        num = [c for c in stacked.columns if c not in ("ts", "lead_d", "model")]
+        fc = stacked.groupby(["ts", "lead_d"], as_index=False)[num].mean()
     return fc.merge(a, left_on="ts", right_index=True, how="inner")
 
 
@@ -278,12 +300,15 @@ def main() -> None:
     pair_cache: dict[str, pd.DataFrame] = {}
 
     def pairs_for(variable: str) -> tuple[pd.DataFrame, str]:
-        model = chosen.get(variable, SOURCE_MODEL)
-        if not (FORECAST_DIR / f"day0_{model}.parquet").exists():
-            model = SOURCE_MODEL
-        if model not in pair_cache:
-            pair_cache[model] = load_pairs(model)
-        return pair_cache[model], model
+        source = chosen.get(variable, SOURCE_MODEL)
+        # a blend is usable as long as ANY member has an archive; load_pairs averages
+        # whatever is there. A source with nothing behind it falls back to the default.
+        if not any((FORECAST_DIR / f"day0_{m}.parquet").exists()
+                   for m in C.members(source)):
+            source = SOURCE_MODEL
+        if source not in pair_cache:
+            pair_cache[source] = load_pairs(source)
+        return pair_cache[source], source
 
     pairs = load_pairs()
     actuals = pd.read_parquet(ACTUALS_PARQUET)

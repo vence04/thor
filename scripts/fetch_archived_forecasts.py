@@ -29,8 +29,30 @@ HOURLY = [
 ]
 UNITS = {"temperature_unit": "fahrenheit", "wind_speed_unit": "mph", "precipitation_unit": "inch"}
 
-MODELS = ["best_match", "ecmwf_ifs025", "gfs_seamless", "gfs_hrrr",
-          "ncep_nbm_conus", "icon_seamless", "gem_seamless"]
+# Every model Open-Meteo serves for this point, verified 2026-10-17 by asking the API
+# for all of them and keeping the ones that came back with values; gfs_graphcast025 is
+# the only one that returned nothing. Seven of these were missing until today, among
+# them four of the six families Apple credits on its own WeatherKit attribution page
+# (Met Office, Meteo-France, JMA, and DWD via icon). best_match is kept because it is
+# what an app gets by default - and at this location it is byte-identical to
+# gfs_seamless, checked against both the archive and the live API, so it is in the
+# bake-off as the baseline everybody else is using, not as a candidate.
+MODELS = ["best_match", "ecmwf_ifs025", "ecmwf_aifs025_single", "gfs_seamless",
+          "gfs_hrrr", "ncep_nbm_conus", "icon_seamless", "gem_seamless",
+          "ukmo_seamless", "meteofrance_seamless", "jma_seamless", "metno_seamless",
+          "knmi_seamless"]
+
+# The second location: the nearest public station with years of history, so models can
+# be ranked over whole seasons rather than the three summer-and-autumn months the Bear
+# Paw sensor has been outdoors. See fetch_public_obs.py for why, and for what this
+# record may and may not decide.
+REGIONAL_LAT, REGIONAL_LON = 44.3681, -71.5453          # KHIE, Whitefield NH
+# The earliest date the whole roster is served at this point: ECMWF-AIFS starts in
+# 2025-04, NBM in 2025-01, and everything else is older. Checked 2026-10-17 by probing
+# 2022-01-01, 2023-01-01, 2024-01-01, 2024-07-01, 2025-01-01 and 2025-04-01. Starting
+# where they ALL exist keeps the ranking a fair fight; an earlier start would score
+# some models on winters the others never saw.
+REGIONAL_START = "2025-04-01"
 
 PREV_DAYS = 7
 # Every model gets a previous-runs archive, not just four: a model without one cannot
@@ -69,16 +91,23 @@ def frame(js: dict) -> pd.DataFrame:
     return df.set_index("ts")
 
 
-def fetch_day0() -> None:
+def fetch_day0(lat: float = LAT, lon: float = LON, start: str = START,
+               out: Path = OUT, tag: str = "day0") -> None:
     end = END or pd.Timestamp.now("UTC").strftime("%Y-%m-%d")
+    out.mkdir(parents=True, exist_ok=True)
     for model in MODELS:
         js = get("https://historical-forecast-api.open-meteo.com/v1/forecast", {
-            "latitude": LAT, "longitude": LON, "start_date": START, "end_date": end,
+            "latitude": lat, "longitude": lon, "start_date": start, "end_date": end,
             "hourly": ",".join(HOURLY), "models": model, "timezone": "UTC", **UNITS,
         })
         df = frame(js)
-        df.to_parquet(OUT / f"day0_{model}.parquet")
-        print(f"day0 {model}: {len(df)} rows, {df.notna().sum().sum()} values")
+        if not df.notna().any().any():
+            # a model with no coverage here: skip rather than write an empty frame the
+            # bake-off would have to special-case
+            print(f"{tag} {model}: no data at this point, skipped")
+            continue
+        df.to_parquet(out / f"{tag}_{model}.parquet")
+        print(f"{tag} {model}: {len(df)} rows, {df.notna().sum().sum()} values")
         time.sleep(2)
 
 
@@ -114,3 +143,6 @@ if __name__ == "__main__":
     OUT.mkdir(parents=True, exist_ok=True)
     fetch_day0()
     fetch_prev_runs()
+    # The regional archives are large, reproducible from the API, and only ever read by
+    # the weekly bake-off that fetches them. They stay out of git (see .gitignore).
+    fetch_day0(REGIONAL_LAT, REGIONAL_LON, REGIONAL_START, OUT / "regional", "regional")

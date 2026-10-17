@@ -149,6 +149,23 @@ const ageText = iso => {
   return h + (h===1 ? " hour " : " hours ") + (m%60) + " min ago";
 };
 const fmtH = t => new Date(t).toLocaleString([], {weekday:"short", hour:"numeric"});
+
+// A source is either a model name or "blend:a+b+c". Spell blends out rather than
+// printing the raw string: every reading on this page now comes from whichever of
+// thirteen models - or whichever average of them - actually forecasts it best here.
+const srcName = v => v.startsWith("blend:")
+  ? v.slice(6).split("+").length + "-model blend"
+  : v;
+const srcFull = v => v.startsWith("blend:")
+  ? "average of " + v.slice(6).split("+").join(", ")
+  : v;
+function baseNote(){
+  const sm = F.source_models;
+  if(!sm) return " · base model: " + F.source_model;
+  const n = new Set(Object.values(sm).flatMap(v => v.startsWith("blend:")
+    ? v.slice(6).split("+") : [v])).size;
+  return " · built from " + n + " forecast models";
+}
 const fmtD = d => new Date(d+"T12:00:00").toLocaleDateString([], {weekday:"short", month:"short", day:"numeric"});
 const hlab = h => h===0 ? "12a" : h<12 ? h+"a" : h===12 ? "12p" : (h-12)+"p";
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
@@ -192,7 +209,7 @@ function render(){
   document.getElementById("updated").textContent =
     "Issued " + ageText(F.generated_at) +
     " (" + new Date(F.generated_at).toLocaleString([], {weekday:"short", hour:"numeric", minute:"2-digit"}) + ")" +
-    " · showing the hour you are in · base model: " + F.source_model;
+    " · showing the hour you are in" + baseNote();
 
   const [ic, cond] = wmo(H.weather_code[0]);
   document.getElementById("now").innerHTML =
@@ -213,8 +230,12 @@ function render(){
       "Correction methods: <code>" + JSON.stringify(F.methods) + "</code>. ") +
     "Forecast base: Open-Meteo — " +
       (F.source_models
-        ? "each reading from whichever model forecasts it best here (" +
-          Object.entries(F.source_models).map(([k, v]) => k.replace(/_(f|pct|mph|hpa)$/, "") + ": " + v).join(", ") + ")"
+        ? "each reading from whichever model, or average of models, forecasts it best " +
+          "here, measured against the station and against years of public observations " +
+          "at Whitefield (" +
+          Object.entries(F.source_models).map(([k, v]) =>
+            '<span title="' + srcFull(v) + '">' +
+            k.replace(/_(f|pct|mph|hpa)$/, "") + ": " + srcName(v) + "</span>").join(", ") + ")"
         : "(" + F.source_model + ")") +
     " — corrected against the Bear Paw Trail Ecowitt station. ⚡ Project Thor.";
 }

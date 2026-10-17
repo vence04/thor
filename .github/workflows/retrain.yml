@@ -37,6 +37,14 @@ jobs:
           ECOWITT_MAC: ${{ secrets.ECOWITT_MAC }}
         run: python scripts/update_actuals.py
 
+      # The public station at Whitefield, 16 km east. It has every season back to 2024
+      # where the Bear Paw sensor has only had summer and autumn, so it is what lets
+      # the bake-off rank models on a winter it has actually seen. Keyless, and a
+      # failure here is not fatal: the bake-off falls back to the site record alone.
+      - name: Update public station observations (KHIE)
+        continue-on-error: true
+        run: python scripts/fetch_public_obs.py
+
       - name: Refresh archived forecasts
         run: python scripts/fetch_archived_forecasts.py
       - name: Source bake-off

@@ -1,0 +1,4 @@
+
+# Regional model archives: large, reproducible from the API every retrain, and read
+# only by the bake-off run that fetches them.
+data/regional/

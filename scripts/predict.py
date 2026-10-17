@@ -15,6 +15,7 @@ import requests
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import candidates as C  # noqa: E402
 from paths import ACTUALS_PARQUET, MODEL_DIR, MODEL_JSON, FORECAST_JSON as OUT_PATH  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -116,7 +117,8 @@ def main() -> None:
     # by the weekly bake-off; anything without a verdict falls back to `src`. Asking for
     # several models in one call returns suffixed columns (temperature_2m_gem_seamless).
     per_var = {v: x.get("source_model", src) for v, x in model["variables"].items()}
-    wanted = sorted({src, *per_var.values()})
+    # a source may be a blend, so ask the API for every model any source draws on
+    wanted = sorted({m for cand in {src, *per_var.values()} for m in C.members(cand)})
 
     params = {"latitude": LAT, "longitude": LON, "hourly": ",".join(HOURLY),
               "daily": "weather_code,sunrise,sunset", "models": ",".join(wanted),
@@ -145,14 +147,23 @@ def main() -> None:
     now = pd.Timestamp.now("UTC").floor("h")
     df = df[df.index >= now]
     lead = ((df.index - now) / pd.Timedelta("1D")).astype(int)
-    def pick(var: str, model_name: str) -> pd.Series | None:
-        """The column for `var` from `model_name`; plain name when only one was asked for."""
-        for key in (f"{var}_{model_name}", var):
-            if key in df:
-                return df[key]
-        return None
+    def pick(var: str, cand: str) -> pd.Series | None:
+        """The column for `var` from a candidate, averaging the members of a blend.
 
-    cloud = pick("cloud_cover", src)
+        Open-Meteo suffixes each column with the model name when several are asked
+        for, and leaves it bare when only one is - hence the fallback.
+        """
+        cols = []
+        for m in C.members(cand):
+            for key in (f"{var}_{m}", var):
+                if key in df and df[key].notna().any():
+                    cols.append(df[key])
+                    break
+        if not cols:
+            return None
+        return cols[0] if len(cols) == 1 else pd.concat(cols, axis=1).mean(axis=1)
+
+    cloud = pick("cloud_cover", C.members(src)[0])
     if cloud is None:
         cloud = pd.Series(50, index=df.index)
 
