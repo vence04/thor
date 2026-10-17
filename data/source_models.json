@@ -1,8 +1,8 @@
 {
-  "chosen_at": "2026-10-17T16:24:38.633879+00:00",
+  "chosen_at": "2026-10-17T17:13:52.210101+00:00",
   "by_variable": {
-    "dewpoint_f": "blend:icon_seamless+ncep_nbm_conus",
-    "gust_mph": "blend:icon_seamless+knmi_seamless+metno_seamless+ncep_nbm_conus+ukmo_seamless",
+    "dewpoint_f": "ncep_nbm_conus",
+    "gust_mph": "blend:gem_seamless+gfs_seamless+knmi_seamless+metno_seamless+ncep_nbm_conus",
     "humidity_pct": "blend:gfs_hrrr+gfs_seamless+knmi_seamless+metno_seamless+ncep_nbm_conus",
     "precip_in": "best_match",
     "pressure_abs_hpa": "blend:icon_seamless+knmi_seamless+metno_seamless+ncep_nbm_conus+ukmo_seamless",

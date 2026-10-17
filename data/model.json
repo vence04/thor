@@ -1,157 +1,187 @@
 {
-  "trained_at": "2026-10-17T16:24:40.069972+00:00",
+  "trained_at": "2026-10-17T17:13:56.141180+00:00",
   "source_model": "best_match",
   "outdoor_start": "2026-07-13 19:00:00+00:00",
   "variables": {
     "temp_f": {
       "fc_col": "temperature_2m",
       "method": "raw",
-      "n_train": 10116,
+      "n_train": 11068,
       "source_model": "ecmwf_ifs025",
-      "span_days": 90,
+      "span_days": 95,
       "use_doy": false,
       "lgbm_eligible": false,
       "recent_holdout": null,
-      "last_actual": "2026-10-12 16:00:00+00:00",
+      "last_actual": "2026-10-17 15:00:00+00:00",
       "cv_mae": {
-        "raw": 3.204,
-        "bias": 3.491,
-        "ridge": 3.359
+        "raw": 3.315,
+        "bias": 3.646,
+        "ridge": 3.511
       },
       "params": {},
       "bands": {
         "0": [
-          -5.1,
-          1.06
+          -5.01,
+          1.15
         ],
         "1": [
-          -4.91,
-          2.05
+          -4.9,
+          2.35
         ],
         "2": [
-          -5.23,
-          2.67
+          -5.18,
+          2.86
         ],
         "3": [
-          -5.38,
-          3.49
+          -5.45,
+          3.72
         ],
         "4": [
-          -5.42,
-          4.85
+          -5.5,
+          5.16
         ],
         "5": [
-          -5.71,
-          4.11
+          -5.94,
+          4.39
         ],
         "6": [
-          -6.99,
-          4.96
+          -7.79,
+          5.21
         ],
         "7": [
-          -7.16,
-          5.85
+          -7.86,
+          6.12
         ]
       }
     },
     "humidity_pct": {
       "fc_col": "relative_humidity_2m",
       "method": "raw",
-      "n_train": 10108,
+      "n_train": 11060,
       "source_model": "blend:gfs_hrrr+gfs_seamless+knmi_seamless+metno_seamless+ncep_nbm_conus",
-      "span_days": 90,
+      "span_days": 95,
       "use_doy": false,
       "lgbm_eligible": false,
       "recent_holdout": null,
-      "last_actual": "2026-10-12 16:00:00+00:00",
+      "last_actual": "2026-10-17 15:00:00+00:00",
       "cv_mae": {
-        "raw": 7.465,
-        "bias": 8.166,
-        "ridge": 7.922
+        "raw": 7.385,
+        "bias": 7.996,
+        "ridge": 7.835
       },
       "params": {},
       "bands": {
         "0": [
-          -5.36,
-          8.18
+          -5.71,
+          8.0
         ],
         "1": [
-          -11.5,
+          -11.31,
           7.1
         ],
         "2": [
-          -7.68,
-          13.34
+          -7.54,
+          13.03
         ],
         "3": [
-          -8.69,
-          14.18
+          -8.25,
+          13.7
         ],
         "4": [
-          -8.5,
-          16.75
+          -8.25,
+          15.75
         ],
         "5": [
-          -8.01,
-          17.75
+          -8.52,
+          17.11
         ],
         "6": [
-          -10.02,
-          19.2
+          -11.25,
+          18.17
         ],
         "7": [
-          -10.75,
-          19.49
+          -15.64,
+          18.71
         ]
       }
     },
     "dewpoint_f": {
       "fc_col": "dew_point_2m",
-      "method": "raw",
-      "n_train": 1373,
-      "source_model": "blend:icon_seamless+ncep_nbm_conus",
-      "span_days": 90,
+      "method": "ridge",
+      "n_train": 1492,
+      "source_model": "ncep_nbm_conus",
+      "span_days": 95,
       "use_doy": false,
       "lgbm_eligible": false,
       "recent_holdout": {
         "method": "ridge",
-        "mae": 2.032,
-        "raw_mae": 1.296,
+        "mae": 1.524,
+        "raw_mae": 1.73,
         "n": 169
       },
-      "last_actual": "2026-10-12 16:00:00+00:00",
+      "last_actual": "2026-10-17 15:00:00+00:00",
       "cv_mae": {
-        "raw": 1.699,
-        "bias": 1.624,
-        "ridge": 1.491
+        "raw": 1.752,
+        "bias": 1.682,
+        "ridge": 1.555
       },
-      "params": {},
+      "params": {
+        "features": [
+          "fc",
+          "lead_d",
+          "sin_h",
+          "cos_h",
+          "cloud"
+        ],
+        "scale_mean": [
+          50.933981,
+          0.0,
+          0.000229,
+          0.005463,
+          51.849196
+        ],
+        "scale_std": [
+          9.818967,
+          1.0,
+          0.706459,
+          0.707733,
+          30.132272
+        ],
+        "coef": [
+          10.027316,
+          0.0,
+          -0.367549,
+          -0.963189,
+          -0.566849
+        ],
+        "intercept": 51.114351
+      },
       "bands": {
         "0": [
-          -3.41,
-          1.51
+          -3.02,
+          2.6
         ]
       }
     },
     "wind_mph": {
       "fc_col": "wind_speed_10m",
       "method": "ridge",
-      "n_train": 10116,
+      "n_train": 11068,
       "source_model": "blend:icon_seamless+knmi_seamless+metno_seamless+ncep_nbm_conus+ukmo_seamless",
-      "span_days": 90,
+      "span_days": 95,
       "use_doy": false,
       "lgbm_eligible": false,
       "recent_holdout": {
         "method": "ridge",
-        "mae": 0.921,
-        "raw_mae": 3.568,
+        "mae": 1.119,
+        "raw_mae": 3.807,
         "n": 1352
       },
-      "last_actual": "2026-10-12 16:00:00+00:00",
+      "last_actual": "2026-10-17 15:00:00+00:00",
       "cv_mae": {
-        "raw": 2.591,
-        "bias": 1.568,
-        "ridge": 0.911
+        "raw": 2.745,
+        "bias": 1.729,
+        "ridge": 0.978
       },
       "params": {
         "features": [
@@ -162,82 +192,82 @@
           "cloud"
         ],
         "scale_mean": [
-          4.218643,
-          3.457098,
-          0.001199,
-          0.003948,
-          55.783821
+          4.358113,
+          3.460788,
+          0.001721,
+          0.00397,
+          58.248747
         ],
         "scale_std": [
-          2.682822,
-          2.309538,
-          0.706693,
-          0.707508,
-          29.268155
+          2.772134,
+          2.308005,
+          0.7066,
+          0.7076,
+          29.627962
         ],
         "coef": [
-          0.861994,
-          0.063857,
-          -0.401253,
-          -0.240734,
-          -0.03055
+          0.761222,
+          0.039607,
+          -0.445873,
+          -0.203261,
+          -0.050168
         ],
-        "intercept": 1.748045
+        "intercept": 1.730758
       },
       "bands": {
         "0": [
-          0.4,
-          5.87
+          0.44,
+          6.09
         ],
         "1": [
-          0.42,
-          5.7
+          0.47,
+          6.06
         ],
         "2": [
-          0.44,
-          5.72
+          0.47,
+          5.98
         ],
         "3": [
-          0.33,
-          5.17
+          0.35,
+          5.47
         ],
         "4": [
-          0.27,
-          5.36
+          0.28,
+          5.6
         ],
         "5": [
-          0.21,
-          5.12
+          0.24,
+          5.39
         ],
         "6": [
-          -0.14,
-          4.56
+          -0.09,
+          5.3
         ],
         "7": [
-          -0.33,
-          5.02
+          -0.3,
+          5.79
         ]
       }
     },
     "gust_mph": {
       "fc_col": "wind_gusts_10m",
       "method": "ridge",
-      "n_train": 10116,
-      "source_model": "blend:icon_seamless+knmi_seamless+metno_seamless+ncep_nbm_conus+ukmo_seamless",
-      "span_days": 90,
+      "n_train": 11068,
+      "source_model": "blend:gem_seamless+gfs_seamless+knmi_seamless+metno_seamless+ncep_nbm_conus",
+      "span_days": 95,
       "use_doy": false,
       "lgbm_eligible": false,
       "recent_holdout": {
         "method": "ridge",
-        "mae": 2.822,
-        "raw_mae": 4.605,
+        "mae": 3.561,
+        "raw_mae": 5.472,
         "n": 1352
       },
-      "last_actual": "2026-10-12 16:00:00+00:00",
+      "last_actual": "2026-10-17 15:00:00+00:00",
       "cv_mae": {
-        "raw": 3.746,
-        "bias": 2.983,
-        "ridge": 2.852
+        "raw": 3.671,
+        "bias": 3.673,
+        "ridge": 3.12
       },
       "params": {
         "features": [
@@ -248,83 +278,83 @@
           "cloud"
         ],
         "scale_mean": [
-          9.316518,
-          3.457098,
-          0.001199,
-          0.003948,
-          55.783821
+          8.566305,
+          3.460788,
+          0.001721,
+          0.00397,
+          55.124178
         ],
         "scale_std": [
-          6.011795,
-          2.309538,
-          0.706693,
-          0.707508,
-          29.268155
+          6.159675,
+          2.308005,
+          0.7066,
+          0.7076,
+          29.505965
         ],
         "coef": [
-          3.472506,
-          0.602731,
-          -0.745075,
-          -0.592662,
-          -0.002088
+          2.961977,
+          0.500455,
+          -1.228052,
+          -0.341174,
+          -0.176845
         ],
-        "intercept": 6.940501
+        "intercept": 6.953606
       },
       "bands": {
         "0": [
-          -0.44,
-          9.79
+          -0.83,
+          9.36
         ],
         "1": [
-          -1.17,
-          8.12
+          -1.87,
+          9.67
         ],
         "2": [
-          -1.19,
-          8.19
+          -3.19,
+          7.27
         ],
         "3": [
-          -2.06,
-          8.06
+          -3.35,
+          7.54
         ],
         "4": [
-          -2.34,
-          7.7
+          -4.06,
+          7.43
         ],
         "5": [
-          -3.12,
-          7.0
+          -4.6,
+          7.2
         ],
         "6": [
-          -3.75,
-          7.14
+          -5.53,
+          7.16
         ],
         "7": [
-          -6.02,
-          5.18
+          -5.87,
+          6.17
         ]
       }
     },
     "pressure_abs_hpa": {
       "fc_col": "surface_pressure",
       "method": "ridge",
-      "n_train": 8164,
+      "n_train": 8283,
       "source_model": "blend:icon_seamless+knmi_seamless+metno_seamless+ncep_nbm_conus+ukmo_seamless",
-      "span_days": 419,
+      "span_days": 424,
       "use_doy": true,
       "lgbm_eligible": true,
       "recent_holdout": {
         "method": "ridge",
-        "mae": 0.388,
-        "raw_mae": 0.883,
+        "mae": 0.391,
+        "raw_mae": 0.887,
         "n": 169
       },
-      "last_actual": "2026-10-12 16:00:00+00:00",
+      "last_actual": "2026-10-17 15:00:00+00:00",
       "cv_mae": {
-        "raw": 0.963,
-        "bias": 0.795,
+        "raw": 0.962,
+        "bias": 0.791,
         "ridge": 0.405,
-        "lgbm": 0.461
+        "lgbm": 0.49
       },
       "params": {
         "features": [
@@ -337,37 +367,37 @@
           "cloud"
         ],
         "scale_mean": [
-          962.842583,
+          962.813863,
           0.0,
-          -0.000385,
-          0.00103,
-          -0.215006,
-          0.017965,
-          63.44951
+          -0.000275,
+          0.001076,
+          -0.225867,
+          0.02112,
+          63.842859
         ],
         "scale_std": [
-          7.850179,
+          7.825739,
           1.0,
-          0.707554,
-          0.706659,
-          0.695967,
-          0.684894,
-          33.964542
+          0.707526,
+          0.706686,
+          0.696782,
+          0.680465,
+          33.917615
         ],
         "coef": [
-          7.941113,
+          7.915808,
           0.0,
-          0.359577,
-          -0.038059,
-          -0.047487,
-          0.169665,
-          -0.097505
+          0.356861,
+          -0.037142,
+          -0.047331,
+          0.168451,
+          -0.097775
         ],
-        "intercept": 963.743615
+        "intercept": 963.714754
       },
       "bands": {
         "0": [
-          -1.75,
+          -1.74,
           -0.07
         ]
       }
