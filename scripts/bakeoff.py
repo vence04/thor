@@ -68,6 +68,26 @@ MIN_HOLDOUT_H = 200
 # 0.1F of each other - that is the regime this guards.
 SWITCH_MARGIN = 0.03       # 3% better, on the criterion in use
 
+# The site record can only speak for seasons it has lived through. See season_veto().
+SEASON_LOOKAHEAD_D = 14    # judge the season a fortnight out, not today's
+SEASON_EVIDENCE_H = 240    # site hours in that season before its verdict stands alone
+# Loose on purpose. At 15% this left one or two candidates out of thirteen, which
+# makes the regional record the decider rather than a guard. 25% ruled out ECMWF for
+# winter temperature - which is the real finding, it is 48% worse than NBM across two
+# regional Januaries - while leaving seven candidates for the site to choose between.
+#
+# Loose also because of a circularity: ncep_nbm_conus is NOAA's blend, calibrated
+# against ASOS observations, and KHIE is an ASOS. It is being marked by its own
+# examiner there, so some of its regional lead will not transfer to a hollow 16 km
+# away with no instrument feeding NOAA. That is a reason to use this record to exclude
+# the clearly bad, never to crown a winner.
+SEASON_VETO = 0.25
+# ...and never cut below this many, however far ahead the leader is. On winter
+# humidity NBM beat everything else by more than 25% at KHIE, which would have left
+# the site a choice of one - the regional record deciding outright, which is what the
+# circularity above says it must not do.
+SEASON_MIN_KEPT = 4
+
 REGIONAL_DIR = FORECAST_DIR / "regional"
 REGIONAL_OBS = ACTUALS_DIR / "obs_hie.parquet"
 SHORTLIST_REGIONAL = 3    # how many of the regional ranking to put in front of the site
@@ -227,19 +247,54 @@ def incumbents() -> dict:
         return {}
 
 
+def coming_season(now: pd.Timestamp | None = None) -> str:
+    """The season a fortnight out, so a guard engages before the season arrives."""
+    now = now or pd.Timestamp.now("UTC")
+    return SEASONS[(now + pd.Timedelta(days=SEASON_LOOKAHEAD_D)).month]
+
+
+def season_veto(var: str, season: str, site_season_h: int,
+                regional_seasonal: pd.DataFrame) -> set[str]:
+    """Candidates that are bad in the coming season where the site cannot tell.
+
+    The site record decides everything, but it can only speak for seasons it has
+    lived through. It went outdoors on 2026-07-13, so on the day this was written it
+    had 1,649 hours of summer and autumn and not one hour of winter, while KHIE had
+    5,706 winter hours against every model. Without this, the first cold snap would be
+    forecast by whichever model happened to suit an October afternoon.
+
+    This only ever REMOVES a candidate that the regional record says is clearly poor in
+    the coming season, and only while the site has too little of that season to judge
+    for itself. It cannot promote anything, and it switches itself off as the site
+    accumulates its own evidence - by next autumn it will do nothing at all.
+    """
+    if regional_seasonal.empty or site_season_h >= SEASON_EVIDENCE_H:
+        return set()
+    g = regional_seasonal[(regional_seasonal.variable == var)
+                          & (regional_seasonal.season == season)]
+    if g.empty or g["mae"].min() <= 0:
+        return set()
+    limit = g["mae"].min() * (1 + SEASON_VETO)
+    keep = set(g.nsmallest(SEASON_MIN_KEPT, "mae")["candidate"])
+    return set(g.loc[g["mae"] > limit, "candidate"]) - keep
+
+
 def shortlist(var: str, regional: pd.DataFrame, site_models: pd.DataFrame,
-              incumbent: str) -> list[str]:
+              incumbent: str, vetoed: set[str] | None = None) -> list[str]:
     """Which candidates the site record gets to choose between, and why each is there."""
+    vetoed = vetoed or set()
     picks = []
     if not regional.empty:
         rg = regional[regional.variable == var].sort_values("mae")
-        best = [c for c in rg.candidate if not C.is_blend(c) and c != BASELINE]
+        best = [c for c in rg.candidate
+                if not C.is_blend(c) and c != BASELINE and c not in vetoed]
         picks += best[:SHORTLIST_REGIONAL]
         for n in BLEND_SIZES:
             if len(best) >= n:
                 picks.append(C.make_blend(best[:n]))
     sg = site_models[site_models.variable == var].sort_values("mae")
-    picks += [c for c in sg.candidate if c != BASELINE][:SHORTLIST_SITE]
+    picks += [c for c in sg.candidate
+              if c != BASELINE and c not in vetoed][:SHORTLIST_SITE]
     picks += [incumbent, BASELINE]
     seen, out = set(), []
     for p in picks:
@@ -249,7 +304,8 @@ def shortlist(var: str, regional: pd.DataFrame, site_models: pd.DataFrame,
     return out
 
 
-def choose_sources(site: pd.DataFrame, regional: pd.DataFrame, current: dict) -> dict:
+def choose_sources(site: pd.DataFrame, regional: pd.DataFrame, current: dict,
+                   vetoes: dict | None = None) -> dict:
     """Pick each variable's source on corrected, out-of-sample skill at the site.
 
     Falls back to raw error only where the corrected scorer could not judge: too
@@ -264,6 +320,12 @@ def choose_sources(site: pd.DataFrame, regional: pd.DataFrame, current: dict) ->
                      else ("mae", "recent_mae"))
         basis = "corrected" if col == "corrected_mae" else "raw"
         pool = g[judged] if judged.any() else g
+        # A candidate the coming season rules out is not eligible, incumbent included -
+        # otherwise the switch margin would protect a source that regional winters say
+        # is poor and the site cannot yet contradict. Never empty the pool.
+        out = (vetoes or {}).get(var, (0, set()))[1]
+        if out and not pool.index.difference(list(out)).empty:
+            pool = pool.drop(index=[c for c in out if c in pool.index])
         incumbent = current.get(var, BASELINE)
         if incumbent not in pool.index:
             incumbent = pool[col].idxmin()
@@ -343,9 +405,26 @@ def main() -> None:
 
     # 3. score every shortlisted candidate on the site, and let the site choose
     current = incumbents()
-    wanted = set()
+    season = coming_season()
+    wanted, vetoes = set(), {}
     for var in VARMAP:
-        wanted |= set(shortlist(var, regional, site_models, current.get(var, BASELINE)))
+        if var in actuals:
+            s = actuals[var].dropna()
+            s = s[s.index >= OUTDOOR_START] if var not in FULL_HISTORY_VARS else s
+            season_h = int((s.index.month.map(SEASONS) == season).sum())
+        else:
+            season_h = 0
+        out = season_veto(var, season, season_h, regional_seasonal)
+        if out:
+            vetoes[var] = (season_h, out)
+        wanted |= set(shortlist(var, regional, site_models,
+                                current.get(var, BASELINE), out))
+    if vetoes:
+        print(f"coming season is {season}; the site cannot judge it yet, so the "
+              f"regional record rules out what is clearly poor there:")
+        for var, (season_h, out) in sorted(vetoes.items()):
+            print(f"  {var}: {season_h}h of {season} on site, "
+                  f"{len(out)} candidate(s) ruled out")
     site, site_seasonal = score(site_frames, actuals, sorted(wanted), VARMAP,
                                 recent_d=RECENT_D, seasons=True)
     # ...then score that shortlist the way the choice is actually made: after
@@ -356,7 +435,7 @@ def main() -> None:
              for row in site.itertuples() if row.variable in TRAIN_VARS]
     if extra:
         site = site.merge(pd.DataFrame(extra), on=["candidate", "variable"], how="left")
-    winners = choose_sources(site, regional, current)
+    winners = choose_sources(site, regional, current, vetoes)
 
     # 4. the report
     out = ["# Source bake-off — Bear Paw Lodge (44.3206, -71.7439)", "",
@@ -368,6 +447,16 @@ def main() -> None:
     out += ["## Source in use, per variable", "", "| variable | source |", "|---|---|"]
     out += [f"| {v} | {C.label(m)} |" for v, m in sorted(winners.items())]
     out.append("")
+    if vetoes:
+        out += [f"The coming season is **{season}**, and the Bear Paw station has not "
+                f"lived through enough of it to judge, so candidates the Whitefield "
+                f"record shows are clearly poor in {season} are not eligible. This "
+                f"switches itself off per variable as the station accumulates its own "
+                f"{season} hours.", "",
+                f"| variable | {season} hours on site | candidates ruled out |",
+                "|---|---|---|"]
+        out += [f"| {v} | {h} | {len(o)} |" for v, (h, o) in sorted(vetoes.items())]
+        out.append("")
 
     out.append("## Site skill, shortlisted candidates (lower MAE = better)\n")
     for var, g in (site.groupby("variable") if not site.empty else []):
