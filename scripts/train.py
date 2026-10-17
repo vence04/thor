@@ -82,7 +82,14 @@ RECENT_HOLDOUT_D = 7
 # (4.08 vs 4.41) while the published record said it had run 20% worse and +2.23F too
 # warm over 28 days. The published record wins - it is the real outcome - so where the
 # scorecard has enough evidence about THIS method, it can veto shipping it.
-PUBLISHED_WINDOW = "last_28_days"
+# Newest window first. 28 days alone has a blind spot: when a correction or a source
+# model changes, the 28-day window stays dominated by the OLD method for weeks, its
+# share of that window falls below PUBLISHED_MIN_SHARE, and the gate goes quiet for
+# exactly the period the new method most needs watching. Measured 2026-10-17: after the
+# 2026-10-12 source switch, humidity's bias correction had produced 70% of the last
+# 116 published hours and was running 11% WORSE than raw, yet over 28 days it held only
+# 28% of the hours, so the gate saw nothing.
+PUBLISHED_WINDOWS = ("last_7_days", "last_28_days")
 PUBLISHED_MIN_SHARE = 0.5    # the method must have produced most of those forecasts
 PUBLISHED_MIN_HOURS = 72     # ...over at least this many hours, or it is not evidence
 
@@ -126,14 +133,20 @@ def published_verdict(actual_col: str, method: str) -> dict | None:
         return None
     try:
         card = json.loads(path.read_text(encoding="utf-8"))
-        s = card["windows"][PUBLISHED_WINDOW][actual_col]
-    except (json.JSONDecodeError, KeyError, OSError):
+    except (json.JSONDecodeError, OSError):
         return None
-    share = (s.get("published_methods") or {}).get(method, 0)
-    if s.get("hours", 0) < PUBLISHED_MIN_HOURS or share < PUBLISHED_MIN_SHARE:
-        return None
-    return {"improvement_pct": s.get("improvement_pct"), "hours": s["hours"],
-            "share": share, "bespoke_mae": s.get("bespoke_mae"), "raw_mae": s.get("raw_mae")}
+    for window in PUBLISHED_WINDOWS:
+        try:
+            s = card["windows"][window][actual_col]
+        except (KeyError, TypeError):
+            continue
+        share = (s.get("published_methods") or {}).get(method, 0)
+        if s.get("hours", 0) < PUBLISHED_MIN_HOURS or share < PUBLISHED_MIN_SHARE:
+            continue
+        return {"improvement_pct": s.get("improvement_pct"), "hours": s["hours"],
+                "share": share, "window": window,
+                "bespoke_mae": s.get("bespoke_mae"), "raw_mae": s.get("raw_mae")}
+    return None
 
 
 def frozen_hours(actuals: pd.DataFrame, col: str) -> pd.DatetimeIndex:
@@ -350,7 +363,7 @@ def main() -> None:
         published = published_verdict(actual_col, best) if best != "raw" else None
         if published and (published["improvement_pct"] or 0) < MIN_IMPROVEMENT * 100:
             print(f"  !! {actual_col}: {best} was published for "
-                  f"{published['share']:.0%} of the last {PUBLISHED_WINDOW.replace('last_','').replace('_',' ')} "
+                  f"{published['share']:.0%} of the {published['window'].replace('last_','').replace('_',' ')} "
                   f"and scored {published['improvement_pct']:+.1f}% against raw "
                   f"({published['bespoke_mae']} vs {published['raw_mae']}, "
                   f"{published['hours']}h) - shipping raw")

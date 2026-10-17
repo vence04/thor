@@ -5,6 +5,7 @@ model/model.json), applies the per-variable correction, and writes a single
 JSON consumed by both the friends page and Home Assistant REST sensors.
 """
 import json
+import time
 from pathlib import Path
 
 import numpy as np
@@ -117,12 +118,26 @@ def main() -> None:
     per_var = {v: x.get("source_model", src) for v, x in model["variables"].items()}
     wanted = sorted({src, *per_var.values()})
 
-    r = requests.get("https://api.open-meteo.com/v1/forecast", params={
-        "latitude": LAT, "longitude": LON, "hourly": ",".join(HOURLY),
-        "daily": "weather_code,sunrise,sunset",
-        "models": ",".join(wanted), "forecast_days": 10, "timezone": "UTC", **UNITS}, timeout=60)
-    r.raise_for_status()
-    js = r.json()
+    params = {"latitude": LAT, "longitude": LON, "hourly": ",".join(HOURLY),
+              "daily": "weather_code,sunrise,sunset", "models": ",".join(wanted),
+              "forecast_days": 10, "timezone": "UTC", **UNITS}
+    # Open-Meteo returned a 503 on 2026-10-17 and this call had no retry, so the hourly
+    # forecast simply failed. The archive fetcher already retries; this now matches it.
+    js = None
+    for attempt in range(4):
+        try:
+            r = requests.get("https://api.open-meteo.com/v1/forecast", params=params, timeout=60)
+            if r.status_code == 200:
+                js = r.json()
+                break
+            if r.status_code not in (429, 500, 502, 503, 504):
+                r.raise_for_status()
+            print(f"open-meteo returned {r.status_code}; retrying")
+        except (requests.exceptions.RequestException, ValueError) as exc:
+            print(f"open-meteo call failed ({type(exc).__name__}); retrying")
+        time.sleep(10 * (attempt + 1))
+    if js is None:
+        raise RuntimeError("open-meteo did not return a usable forecast after 4 attempts")
 
     df = pd.DataFrame(js["hourly"])
     df["ts"] = pd.to_datetime(df.pop("time"), utc=True)
@@ -217,8 +232,15 @@ def main() -> None:
         return "rainy"
 
     h72 = out_hourly.iloc[:72]
+    # `epoch` exists so a reader can find the hour that is current NOW rather than
+    # trusting entry 0. GitHub's scheduler drops most of the runs this repo asks for -
+    # measured 2026-10-17, thirteen runs in forty-three hours, gaps up to five hours -
+    # so the file is routinely hours old while still holding the right numbers for the
+    # right hours. Comparing ISO strings would not work: these are UTC and Home
+    # Assistant's now() is -04:00.
     ha_hourly = [{
-        "datetime": t.isoformat(), "condition": ha_condition(h72["weather_code"].iloc[i]),
+        "datetime": t.isoformat(), "epoch": int(t.timestamp()),
+        "condition": ha_condition(h72["weather_code"].iloc[i]),
         "temperature": h72["temp_f"].iloc[i], "humidity": h72["humidity_pct"].iloc[i],
         "precipitation": float(h72["precip_in"].iloc[i] or 0),
         "precipitation_probability": None if pd.isna(h72["precip_prob"].iloc[i]) else int(h72["precip_prob"].iloc[i]),
@@ -226,7 +248,10 @@ def main() -> None:
         "wind_bearing": None if pd.isna(h72["wind_dir_deg"].iloc[i]) else int(h72["wind_dir_deg"].iloc[i]),
     } for i, t in enumerate(h72.index)]
     ha_daily = [{
-        "datetime": f"{d}T00:00:00-04:00", "condition": ha_condition(daily["weather_code"].iloc[i]),
+        # midnight local, with whatever offset that date actually has: a hardcoded
+        # -04:00 was right only until EDT ends on 2026-11-01.
+        "datetime": pd.Timestamp(f"{d}T00:00:00").tz_localize("America/New_York").isoformat(),
+        "condition": ha_condition(daily["weather_code"].iloc[i]),
         "temperature": daily["high_f"].iloc[i], "templow": daily["low_f"].iloc[i],
         "precipitation": daily["precip_in"].iloc[i],
         "precipitation_probability": None if pd.isna(daily["precip_prob_max"].iloc[i]) else int(daily["precip_prob_max"].iloc[i]),

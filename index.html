@@ -154,9 +154,31 @@ const hlab = h => h===0 ? "12a" : h<12 ? h+"a" : h===12 ? "12p" : (h-12)+"p";
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 
 let F=null, SC=null;
+
+// Drop the hours that have already happened. GitHub runs maybe a third of the forecast
+// jobs this repo asks for - thirteen runs in forty-three hours when measured on
+// 2026-10-17, gaps up to five hours - so the published file is often hours old. Its
+// numbers for the hours still ahead are perfectly good; it is only entry 0 that goes
+// stale, and everything on this page used to read entry 0 as "now".
+function trimToNow(F){
+  const H = F.hourly, ts = H && H.ts;
+  if(!ts || !ts.length) return;
+  // advance to the last hour that has already started: that is the hour we are inside
+  const now = Date.now();
+  let i = 0;
+  while(i < ts.length-1 && new Date(ts[i+1]).getTime() <= now) i++;
+  if(!i) return;
+  for(const k in H) if(Array.isArray(H[k])) H[k] = H[k].slice(i);
+  for(const k in (F.hourly_bands||{}))
+    for(const kk in F.hourly_bands[k])
+      if(Array.isArray(F.hourly_bands[k][kk])) F.hourly_bands[k][kk] = F.hourly_bands[k][kk].slice(i);
+  F.hours_elapsed = i;
+}
+
 async function load(bust){
   const r = await fetch("forecast.json" + (bust ? "?t="+Date.now() : ""), {cache:"no-store"});
   F = await r.json();
+  trimToNow(F);
   try{
     const sc = await fetch("data/scorecard.json" + (bust ? "?t="+Date.now() : ""), {cache:"no-store"});
     SC = sc.ok ? await sc.json() : null;
@@ -168,9 +190,9 @@ async function load(bust){
 function render(){
   const H=F.hourly;
   document.getElementById("updated").textContent =
-    "Updated " + ageText(F.generated_at) +
+    "Issued " + ageText(F.generated_at) +
     " (" + new Date(F.generated_at).toLocaleString([], {weekday:"short", hour:"numeric", minute:"2-digit"}) + ")" +
-    " · new ThorCast every hour · base model: " + F.source_model;
+    " · showing the hour you are in · base model: " + F.source_model;
 
   const [ic, cond] = wmo(H.weather_code[0]);
   document.getElementById("now").innerHTML =

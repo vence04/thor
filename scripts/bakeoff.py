@@ -20,6 +20,14 @@ INHG_TO_HPA = 33.8639
 # Before this the sensors sat indoors (discovered 2026-07-13: Jan "outdoor" temp ~70F,
 # wind 0.0 for 4954h, no solar signal). Only pressure is valid earlier.
 OUTDOOR_START = pd.Timestamp("2026-07-13T19:00:00Z")
+
+# A model is only switched to when it wins over the WHOLE record AND over the last two
+# weeks. Picking on all-history alone is how temperature and dew point were moved to
+# models that then did worse: measured over the 115 hours after the 2026-10-12 switch,
+# ecmwf_ifs025 was 28% worse than best_match on temperature and ncep_nbm_conus 51%
+# worse on dew point, while the 90-day bake-off had ranked both of them first. The
+# incumbent keeps the slot unless a challenger beats it on both windows.
+RECENT_D = 14
 FULL_HISTORY_VARS = {"pressure_abs_hpa"}
 
 # actual column -> forecast column
@@ -61,8 +69,11 @@ def score_day0(actuals: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
                 d = d[d.index >= OUTDOOR_START]
             if len(d) < 24:
                 continue
+            recent = d[d.index >= d.index.max() - pd.Timedelta(days=RECENT_D)]
             rows.append({"model": model, "variable": av, "n": len(d),
-                         "mae": d.abs().mean(), "bias": d.mean(), "rmse": (d ** 2).mean() ** 0.5})
+                         "mae": d.abs().mean(), "bias": d.mean(), "rmse": (d ** 2).mean() ** 0.5,
+                         "recent_n": len(recent),
+                         "recent_mae": recent.abs().mean() if len(recent) >= 24 else float("nan")})
             for season, g in d.groupby(d.index.month.map(SEASONS)):
                 srows.append({"model": model, "variable": av, "season": season,
                               "n": len(g), "mae": g.abs().mean(), "bias": g.mean()})
@@ -90,6 +101,45 @@ def score_leads(actuals: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def choose_sources(day0: pd.DataFrame) -> dict:
+    """The model each variable is taken from: all-history winner, confirmed on RECENT_D.
+
+    The incumbent (whatever source_models.json already names, else best_match) is only
+    displaced by a challenger that is better over the full record AND over the last two
+    weeks. Where the recent window has too little data to judge, the incumbent stays.
+    """
+    current = {}
+    path = REPORTS_DIR / "source_models.json"
+    if path.exists():
+        try:
+            current = json.loads(path.read_text(encoding="utf-8")).get("by_variable", {})
+        except (json.JSONDecodeError, OSError):
+            current = {}
+    chosen = {}
+    for var, g in day0.groupby("variable"):
+        g = g.set_index("model")
+        incumbent = current.get(var, "best_match")
+        if incumbent not in g.index:
+            incumbent = g["mae"].idxmin()
+        challenger = g["mae"].idxmin()
+        if challenger == incumbent:
+            chosen[var] = incumbent
+            continue
+        r_new, r_old = g.at[challenger, "recent_mae"], g.at[incumbent, "recent_mae"]
+        if pd.notna(r_new) and pd.notna(r_old) and r_new < r_old:
+            chosen[var] = challenger
+            print(f"  {var}: switching {incumbent} -> {challenger} "
+                  f"(all-history {g.at[incumbent,'mae']:.2f} -> {g.at[challenger,'mae']:.2f}, "
+                  f"last {RECENT_D}d {r_old:.2f} -> {r_new:.2f})")
+        else:
+            chosen[var] = incumbent
+            why = ("no recent data" if pd.isna(r_new) or pd.isna(r_old)
+                   else f"last {RECENT_D}d {r_new:.2f} vs incumbent {r_old:.2f}")
+            print(f"  {var}: keeping {incumbent}; {challenger} wins all-history but not "
+                  f"recently ({why})")
+    return chosen
+
+
 def main() -> None:
     actuals = load_actuals()
     day0, seasonal = score_day0(actuals)
@@ -105,7 +155,8 @@ def main() -> None:
         out.append("_Not enough outdoor-era data yet._\n")
     for var, g in (day0.groupby("variable") if not day0.empty else []):
         out.append(f"### {var}\n")
-        out.append(g.sort_values("mae")[["model", "n", "mae", "bias", "rmse"]]
+        out.append(g.sort_values("mae")[["model", "n", "mae", "bias", "rmse",
+                                         "recent_n", "recent_mae"]]
                    .to_markdown(index=False, floatfmt=".2f"))
         out.append("")
 
@@ -124,19 +175,25 @@ def main() -> None:
     out.append("")
 
     (REPORTS_DIR).mkdir(exist_ok=True)
-    (REPORTS_DIR / "source_bakeoff.md").write_text("\n".join(out), encoding="utf-8")
     day0.to_csv(REPORTS_DIR / "day0_scores.csv", index=False)
     # The verdict, where train.py can read it. Until 2026-10-12 the bake-off ranked seven
     # models every week and nothing used the answer: every variable was taken from
     # best_match, which lost on all of them (pressure by 41%, gusts 28%, wind 27%).
-    winners = (day0.loc[day0.groupby("variable")["mae"].idxmin()]
-                   .set_index("variable")["model"].to_dict())
+    winners = choose_sources(day0)
+    out.append("## Source model in use, per variable")
+    out.append("")
+    out.append("| variable | model |")
+    out.append("|---|---|")
+    out += [f"| {v} | {m} |" for v, m in sorted(winners.items())]
+    out.append("")
+    (REPORTS_DIR / "source_bakeoff.md").write_text("\n".join(out), encoding="utf-8")
     (REPORTS_DIR / "source_models.json").write_text(
         json.dumps({"chosen_at": pd.Timestamp.now("UTC").isoformat(), "by_variable": winners},
                    indent=2), encoding="utf-8")
     leads.to_csv(REPORTS_DIR / "lead_scores.csv", index=False)
-    print("day-0 winners by variable:")
-    print(day0.loc[day0.groupby("variable")["mae"].idxmin()][["variable", "model", "mae", "bias"]].to_string(index=False))
+    print("source model in use, per variable:")
+    for v, m in sorted(winners.items()):
+        print(f"  {v}: {m}")
 
 
 if __name__ == "__main__":
