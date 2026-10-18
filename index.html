@@ -245,7 +245,12 @@ function render(){
             '<span title="' + srcFull(v) + '">' +
             k.replace(/_(f|pct|mph|hpa)$/, "") + ": " + srcName(v) + "</span>").join(", ") + ")"
         : "(" + F.source_model + ")") +
-    " — corrected against the Bear Paw Trail Ecowitt station. ⚡ Project Thor.";
+    " — corrected against the Bear Paw Trail Ecowitt station." +
+    (F.precip_prob_models
+      ? " Chance of precipitation is the share of " + F.precip_prob_models +
+        " forecast models expecting measurable rain in that hour, tested against the station's rain gauge."
+      : "") +
+    " ⚡ Project Thor.";
 }
 
 // The weekly scorecard: what the page actually published, against the station.

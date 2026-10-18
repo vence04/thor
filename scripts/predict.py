@@ -16,6 +16,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import candidates as C  # noqa: E402
+from fetch_archived_forecasts import MODELS as ALL_MODELS  # noqa: E402
 from paths import ACTUALS_PARQUET, MODEL_DIR, MODEL_JSON, FORECAST_JSON as OUT_PATH  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -32,6 +33,36 @@ COLLAPSE_RATIO = 0.30
 # be: on 2026-10-12 the wind correction produced -0.2 mph. Clamp to the possible range.
 BOUNDS = {"wind_mph": (0, None), "gust_mph": (0, None), "humidity_pct": (0, 100)}
 SPREAD_DAYS = 28
+
+# Chance of precipitation is the share of the twelve models that forecast measurable
+# rain in that hour - Ebert's "poor man's ensemble" (Mon. Wea. Rev., 2001). Tested
+# 2026-10-18 on the day-0 archive against the station's gauge, last 30% held out (655
+# hours, 78 wet): Brier 0.058, against 0.086 for the best single model read as yes/no,
+# 0.110 for climatology, and 0.062 for a logistic regression over all twelve amounts,
+# which overfits. Open-Meteo's own figure is published beside it as
+# precip_prob_openmeteo so the two can be scored against each other from git history
+# once a wet season has passed; it is one 27 km ensemble-cell number, the same whichever
+# model is asked for, so it never varied with the bake-off anyway. best_match is left
+# out because at this point it is byte-identical to gfs_seamless.
+WET_IN = 0.01                 # the gauge's reporting step; the threshold the test used
+ENSEMBLE = [m for m in ALL_MODELS if m != "best_match"]
+MIN_MEMBERS = 4               # fewer than this with a value for the hour: use Open-Meteo's
+
+
+def rain_chance(member_series: list, fallback: pd.Series | None) -> pd.Series:
+    """Percent of models forecasting >= WET_IN in each hour; models with no value for
+    an hour (shorter horizons) are left out of that hour's count, not counted as dry."""
+    if not member_series:
+        return fallback if fallback is not None else pd.Series(np.nan, index=[])
+    vals = pd.concat(member_series, axis=1)
+    wet = (vals >= WET_IN).where(vals.notna())
+    frac = wet.mean(axis=1) * 100
+    enough = vals.notna().sum(axis=1) >= MIN_MEMBERS
+    if fallback is not None:
+        frac = frac.where(enough, fallback)
+    else:
+        frac = frac.where(enough)
+    return frac.round()
 
 
 def station_spread(days: int = SPREAD_DAYS) -> dict:
@@ -118,7 +149,8 @@ def main() -> None:
     # several models in one call returns suffixed columns (temperature_2m_gem_seamless).
     per_var = {v: x.get("source_model", src) for v, x in model["variables"].items()}
     # a source may be a blend, so ask the API for every model any source draws on
-    wanted = sorted({m for cand in {src, *per_var.values()} for m in C.members(cand)})
+    wanted = sorted({m for cand in {src, *per_var.values()} for m in C.members(cand)}
+                    | set(ENSEMBLE))
 
     params = {"latitude": LAT, "longitude": LON, "hourly": ",".join(HOURLY),
               "daily": "weather_code,sunrise,sunset", "models": ",".join(wanted),
@@ -203,7 +235,13 @@ def main() -> None:
             bands[out_name] = {"lo": (out_hourly[out_name] - np.array(lo)).round(1).tolist(),
                                "hi": (out_hourly[out_name] - np.array(hi)).round(1).tolist()}
     out_hourly["precip_in"] = pick("precipitation", src).round(3)
-    out_hourly["precip_prob"] = pick("precipitation_probability", src)
+    om_prob = pick("precipitation_probability", src)
+    members = [s for s in (pick("precipitation", m) for m in ENSEMBLE) if s is not None]
+    if len(members) < MIN_MEMBERS:
+        print(f"WARN: only {len(members)} models returned precipitation - "
+              f"publishing Open-Meteo's probability")
+    out_hourly["precip_prob"] = rain_chance(members, om_prob)
+    out_hourly["precip_prob_openmeteo"] = om_prob
     out_hourly["cloud_pct"] = cloud
     out_hourly["wind_dir_deg"] = pick("wind_direction_10m", src)
     out_hourly["weather_code"] = pick("weather_code", src)
@@ -274,6 +312,7 @@ def main() -> None:
         "location": {"lat": LAT, "lon": LON, "name": "Bear Paw Trail, Littleton NH"},
         "source_model": src,
         "source_models": per_var,
+        "precip_prob_models": len(members),
         "model_trained_at": model.get("trained_at"),
         "methods": {k: v["method"] for k, v in model["variables"].items()},
         "n_train": {k: v["n_train"] for k, v in model["variables"].items()},
