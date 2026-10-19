@@ -1,23 +1,23 @@
 # ThorCast scorecard
 
-Every published forecast, compared hour by hour with the Bear Paw station. Bespoke is what the page showed; raw is the regional model it started from. Positive improvement means bespoke was closer. Updated 2026-10-17 17:13 UTC; station data to 2026-10-17 15:00.
+Every published forecast, compared hour by hour with the Bear Paw station. Bespoke is what the page showed; raw is the regional model it started from. Positive improvement means bespoke was closer. Updated 2026-10-19 14:49 UTC; station data to 2026-10-18 21:00.
 
 ## Last 7 days
 
 | variable | hours | bespoke avg miss | raw avg miss | improvement | bespoke bias |
 |---|---|---|---|---|---|
-| Temperature (F) | 166 | 2.73 | 2.66 | -3% | +0.6 |
-| Humidity (%) | 166 | 6.97 | 6.57 | -6% | -4.2 |
-| Dew point (F) | 166 | 2.75 | 2.93 | +6% | +0.3 |
-| Wind (mph) | 166 | 1.23 | 3.07 | +60% | +0.7 |
-| Gusts (mph) | 166 | 3.17 | 5.63 | +44% | +1.7 |
+| Temperature (F) | 151 | 2.53 | 2.46 | -3% | +0.0 |
+| Humidity (%) | 151 | 6.25 | 5.72 | -9% | -3.3 |
+| Dew point (F) | 151 | 2.39 | 2.44 | +2% | -0.2 |
+| Wind (mph) | 151 | 1.17 | 2.98 | +61% | +0.5 |
+| Gusts (mph) | 151 | 3.17 | 5.92 | +46% | +1.5 |
 
 ## Last 28 days
 
 | variable | hours | bespoke avg miss | raw avg miss | improvement | bespoke bias |
 |---|---|---|---|---|---|
-| Temperature (F) | 667 | 3.94 | 3.29 | -20% | +1.7 |
-| Humidity (%) | 667 | 9.32 | 9.05 | -3% | -4.2 |
-| Dew point (F) | 667 | 3.18 | 3.85 | +17% | -1.3 |
-| Wind (mph) | 667 | 2.43 | 3.87 | +37% | +2.1 |
-| Gusts (mph) | 667 | 3.33 | 5.67 | +41% | +1.3 |
+| Temperature (F) | 652 | 3.45 | 3.26 | -6% | +1.0 |
+| Humidity (%) | 652 | 9.22 | 8.85 | -4% | -3.8 |
+| Dew point (F) | 652 | 3.04 | 3.66 | +17% | -1.1 |
+| Wind (mph) | 652 | 2.45 | 3.91 | +37% | +2.0 |
+| Gusts (mph) | 652 | 3.23 | 5.76 | +44% | +1.1 |
