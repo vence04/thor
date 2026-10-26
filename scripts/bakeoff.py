@@ -27,6 +27,7 @@ import json
 import sys
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -93,6 +94,11 @@ REGIONAL_OBS = ACTUALS_DIR / "obs_hie.parquet"
 SHORTLIST_REGIONAL = 3    # how many of the regional ranking to put in front of the site
 SHORTLIST_SITE = 2        # ...alongside this many of the site's own favourites
 BLEND_SIZES = (2, 3, 5)   # blends of the N best regional models are also candidates
+# A stack's weights are fitted on the training part of the site record only (the same
+# split corrected_skill uses), by non-negative least squares shrunk gently towards equal
+# weights so twelve correlated columns cannot swing wildly week to week.
+STACK_SHRINK = 0.02       # as a share of the design's scale; 0 would be plain NNLS
+STACK_MIN_MEMBERS = 3     # fewer models with a full record than this: no stack
 
 # best_match is what an app gets by default. At this point it is byte-identical to
 # gfs_seamless (checked 2026-10-17 against both the archive and the live API), so it
@@ -214,6 +220,50 @@ def corrected_skill(cand: str, frames: dict, actuals: pd.DataFrame,
             else float("nan"),
             "corr": float(pd.Series(te[fc_col].values).corr(
                 pd.Series(te[actual_col].values)))}
+
+
+def fit_stack(frames: dict, actuals: pd.DataFrame, actual_col: str, fc_col: str,
+              exclude: set[str] | None = None) -> str | None:
+    """Learn one weight per model for this variable, on the part of the site record
+    that corrected_skill will fit on, and return the stack's name - or None.
+
+    The split must be the one corrected_skill uses, or the holdout would have seen the
+    weights. Its cut is a quantile of the hours where the candidate and the station
+    both have a value; a stack has a value wherever ANY member does, which is the same
+    set of hours whatever the weights, so the cut is taken on the equal-weight blend of
+    the same members and is therefore identical.
+
+    The weights are used as proportions: candidates.weighted_mean renormalises them
+    over the members present in each hour, so a stack is a weighted average, never a
+    scale correction. Scale (a sheltered site's wind at a third of the models') is the
+    corrector's job, and the corrector is judged on the same holdout.
+    """
+    from scipy.optimize import nnls
+    exclude = exclude or set()
+    names = [m for m in sorted(frames) if m != BASELINE and m not in exclude
+             and fc_col in frames[m] and frames[m][fc_col].notna().any()]
+    if len(names) < STACK_MIN_MEMBERS:
+        return None
+    eq = C.series(C.make_blend(names), frames, fc_col)
+    j = pd.concat([eq.rename("eq"), actuals[actual_col].rename("y")], axis=1,
+                  sort=False).dropna().sort_index()
+    if actual_col not in FULL_HISTORY_VARS:
+        j = j[j.index >= OUTDOOR_START]
+    if len(j) < MIN_HOLDOUT_H * 3:
+        return None
+    cut = pd.Series(j.index).quantile(1 - CORRECTED_HOLDOUT)
+    X = pd.concat([frames[m][fc_col].rename(m) for m in names], axis=1, sort=False)
+    X = X.reindex(j.index[j.index < cut]).dropna(how="any")
+    y = actuals[actual_col].reindex(X.index)
+    if len(X) < MIN_HOLDOUT_H:
+        return None
+    k = len(names)
+    scale = float(np.sqrt((X.values ** 2).mean())) or 1.0
+    lam = STACK_SHRINK * scale * np.sqrt(len(X))
+    A = np.vstack([X.values, lam * np.eye(k)])
+    b = np.concatenate([y.values, np.full(k, lam / k)])
+    w, _ = nnls(A, b)
+    return C.make_stack(dict(zip(names, w)))
 
 
 def score_leads(actuals: pd.DataFrame) -> pd.DataFrame:
@@ -419,6 +469,11 @@ def main() -> None:
             vetoes[var] = (season_h, out)
         wanted |= set(shortlist(var, regional, site_models,
                                 current.get(var, BASELINE), out))
+        # ...plus a stack fitted for this variable, judged like everything else
+        if var in TRAIN_VARS:
+            stk = fit_stack(site_frames, actuals, var, VARMAP[var], out)
+            if stk:
+                wanted.add(stk)
     if vetoes:
         print(f"coming season is {season}; the site cannot judge it yet, so the "
               f"regional record rules out what is clearly poor there:")

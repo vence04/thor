@@ -131,15 +131,23 @@ def load_pairs(source: str = SOURCE_MODEL) -> pd.DataFrame:
     a = pd.read_parquet(ACTUALS_PARQUET)
     a["pressure_abs_hpa"] = a["pressure_abs_inhg"] * INHG_TO_HPA
 
-    parts = [f for f in (_archive(m) for m in C.members(source)) if f is not None]
+    w = C.weights(source)
+    parts = {m: f for m, f in ((m, _archive(m)) for m in w) if f is not None}
     if not parts:
         return pd.DataFrame()
     if len(parts) == 1:
-        fc = parts[0]
+        fc = next(iter(parts.values()))
     else:
-        stacked = pd.concat(parts, ignore_index=True)
-        num = [c for c in stacked.columns if c not in ("ts", "lead_d", "model")]
-        fc = stacked.groupby(["ts", "lead_d"], as_index=False)[num].mean()
+        # a stack's members carry their learned weights; a blend's are equal
+        stacked = pd.concat([f.assign(_w=w[m]) for m, f in parts.items()], ignore_index=True)
+        num = [c for c in stacked.columns if c not in ("ts", "lead_d", "model", "_w")]
+        keys = [stacked["ts"], stacked["lead_d"]]
+        out = {}
+        for c in num:
+            present = stacked["_w"].where(stacked[c].notna(), 0.0)
+            out[c] = ((stacked[c].fillna(0.0) * stacked["_w"]).groupby(keys).sum()
+                      / present.groupby(keys).sum())
+        fc = pd.DataFrame(out).reset_index()
     return fc.merge(a, left_on="ts", right_index=True, how="inner")
 
 

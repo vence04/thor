@@ -158,20 +158,23 @@ const ageText = iso => {
 };
 const fmtH = t => new Date(t).toLocaleString([], {weekday:"short", hour:"numeric"});
 
-// A source is either a model name or "blend:a+b+c". Spell blends out rather than
-// printing the raw string: every reading on this page now comes from whichever of
-// thirteen models - or whichever average of them - actually forecasts it best here.
-const srcName = v => v.startsWith("blend:")
-  ? v.slice(6).split("+").length + "-model blend"
+// A source is a model name, "blend:a+b+c" (their average) or "stack:a=0.3+b=0.7" (a
+// weighted average, weights learned against the station). Spell these out rather than
+// printing the raw string: every reading on this page comes from whichever of thirteen
+// models - or whichever average of them - actually forecasts it best here.
+const srcParts = v => v.startsWith("blend:") || v.startsWith("stack:")
+  ? v.slice(6).split("+").map(p => p.split("=")) : [[v]];
+const srcMembers = v => srcParts(v).map(p => p[0]);
+const srcName = v => v.startsWith("blend:") ? srcMembers(v).length + "-model blend"
+  : v.startsWith("stack:") ? "weighted " + srcMembers(v).length + "-model blend"
   : v;
-const srcFull = v => v.startsWith("blend:")
-  ? "average of " + v.slice(6).split("+").join(", ")
+const srcFull = v => v.startsWith("blend:") ? "average of " + srcMembers(v).join(", ")
+  : v.startsWith("stack:") ? "weighted average of " + srcParts(v).map(p => p[0] + " ×" + p[1]).join(", ")
   : v;
 function baseNote(){
   const sm = F.source_models;
   if(!sm) return " · base model: " + F.source_model;
-  const n = new Set(Object.values(sm).flatMap(v => v.startsWith("blend:")
-    ? v.slice(6).split("+") : [v])).size;
+  const n = new Set(Object.values(sm).flatMap(srcMembers)).size;
   return " · built from " + n + " forecast models";
 }
 const fmtD = d => new Date(d+"T12:00:00").toLocaleDateString([], {weekday:"short", month:"short", day:"numeric"});

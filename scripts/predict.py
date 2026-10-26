@@ -180,20 +180,24 @@ def main() -> None:
     df = df[df.index >= now]
     lead = ((df.index - now) / pd.Timedelta("1D")).astype(int)
     def pick(var: str, cand: str) -> pd.Series | None:
-        """The column for `var` from a candidate, averaging the members of a blend.
+        """The column for `var` from a candidate, averaging the members of a blend
+        (by their learned weights for a stack).
 
         Open-Meteo suffixes each column with the model name when several are asked
         for, and leaves it bare when only one is - hence the fallback.
         """
-        cols = []
-        for m in C.members(cand):
+        w = C.weights(cand)
+        cols = {}
+        for m in w:
             for key in (f"{var}_{m}", var):
                 if key in df and df[key].notna().any():
-                    cols.append(df[key])
+                    cols[m] = df[key]
                     break
         if not cols:
             return None
-        return cols[0] if len(cols) == 1 else pd.concat(cols, axis=1).mean(axis=1)
+        if len(cols) == 1:
+            return next(iter(cols.values()))
+        return C.weighted_mean(pd.concat(cols, axis=1), w)
 
     cloud = pick("cloud_cover", C.members(src)[0])
     if cloud is None:
