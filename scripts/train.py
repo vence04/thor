@@ -28,7 +28,22 @@ from paths import (ACTUALS_DIR, ACTUALS_PARQUET, FORECAST_DIR, MODEL_DIR,
 ROOT = Path(__file__).resolve().parents[1]
 MODEL_DIR = MODEL_DIR
 OUTDOOR_START = pd.Timestamp("2026-07-13T19:00:00Z")
+# The outdoor temperature/humidity sensor (WH26) was moved on 2026-10-21 and its new
+# position is permanent (Lloyd, 2026-10-26). The station reported nothing on 19 and 20
+# October, read 58F against 41F from every model on the 21st, and has run 3.5-5.6F
+# warmer than the models since: a different site, so its variables start a new record
+# on 22 October and nothing before it is evidence about where the sensor is now. The
+# wind array keeps its history: the wind correction still scored 66% better than raw in
+# the week after the move, so whatever moved did not change what it measures.
+SENSOR_MOVED = pd.Timestamp("2026-10-22T00:00:00Z")
+SITE_START = {"temp_f": SENSOR_MOVED, "humidity_pct": SENSOR_MOVED, "dewpoint_f": SENSOR_MOVED}
 INHG_TO_HPA = 33.8639
+
+
+def site_start(var: str) -> pd.Timestamp:
+    """The first hour of the station record that speaks for this variable's sensor
+    where it is today."""
+    return SITE_START.get(var, OUTDOOR_START)
 
 SOURCE_MODEL = "best_match"   # fallback only; the per-variable choice comes from the bake-off
 
@@ -325,6 +340,7 @@ def main() -> None:
     stale_notes = []
     result = {"trained_at": pd.Timestamp.now("UTC").isoformat(),
               "source_model": SOURCE_MODEL, "outdoor_start": str(OUTDOOR_START),
+              "site_start": {k: str(v) for k, v in SITE_START.items()},
               "variables": {}}
     report = ["# Offset model backtest", "",
               f"Source model: `{SOURCE_MODEL}`. Rolling-origin CV, 4 folds. "
@@ -336,7 +352,7 @@ def main() -> None:
                    + (["cloud_cover"] if "cloud_cover" in pairs else [])].dropna(
                        subset=[fc_col, actual_col])
         if not full_hist:
-            df = df[df["ts"] >= OUTDOOR_START]
+            df = df[df["ts"] >= site_start(actual_col)]
 
         # A frozen sensor is not data. Drop those hours and say so.
         frozen = frozen_hours(actuals, actual_col)

@@ -34,7 +34,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import candidates as C  # noqa: E402
 from paths import (ACTUALS_DIR, ACTUALS_PARQUET, FORECAST_DIR, MODEL_DIR,
                    MODEL_JSON, REPORTS_DIR, ensure_dirs)  # noqa: E402
-from train import VARS as TRAIN_VARS, make_bias, make_ridge  # noqa: E402
+from train import VARS as TRAIN_VARS, make_bias, make_ridge, site_start  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 FC = FORECAST_DIR
@@ -149,7 +149,7 @@ def score(frames: dict, truth: pd.DataFrame, cands: list[str], varmap: dict,
                 continue
             d = (f - truth[av]).dropna()
             if outdoor_only and av not in FULL_HISTORY_VARS:
-                d = d[d.index >= OUTDOOR_START]
+                d = d[d.index >= site_start(av)]
             if len(d) < 24:
                 continue
             row = {"candidate": cand, "variable": av, "n": len(d),
@@ -181,7 +181,7 @@ def corrected_skill(cand: str, frames: dict, actuals: pd.DataFrame,
     j = pd.concat([f.rename(fc_col), actuals[actual_col].rename(actual_col)],
                   axis=1, sort=False).dropna().sort_index()
     if actual_col not in FULL_HISTORY_VARS:
-        j = j[j.index >= OUTDOOR_START]
+        j = j[j.index >= site_start(actual_col)]
     if len(j) < MIN_HOLDOUT_H * 3:
         return {}
     j = j.reset_index().rename(columns={"index": "ts", j.columns.name or "ts": "ts"})
@@ -248,7 +248,7 @@ def fit_stack(frames: dict, actuals: pd.DataFrame, actual_col: str, fc_col: str,
     j = pd.concat([eq.rename("eq"), actuals[actual_col].rename("y")], axis=1,
                   sort=False).dropna().sort_index()
     if actual_col not in FULL_HISTORY_VARS:
-        j = j[j.index >= OUTDOOR_START]
+        j = j[j.index >= site_start(actual_col)]
     if len(j) < MIN_HOLDOUT_H * 3:
         return None
     cut = pd.Series(j.index).quantile(1 - CORRECTED_HOLDOUT)
@@ -279,7 +279,7 @@ def score_leads(actuals: pd.DataFrame) -> pd.DataFrame:
             for av, fv in lead_map.items():
                 d = (j[fv] - j[av]).dropna()
                 if av not in FULL_HISTORY_VARS:
-                    d = d[d.index >= OUTDOOR_START]
+                    d = d[d.index >= site_start(av)]
                 if len(d) < 24:
                     continue
                 rows.append({"model": model, "variable": av, "lead_d": lead,
@@ -460,7 +460,7 @@ def main() -> None:
     for var in VARMAP:
         if var in actuals:
             s = actuals[var].dropna()
-            s = s[s.index >= OUTDOOR_START] if var not in FULL_HISTORY_VARS else s
+            s = s[s.index >= site_start(var)] if var not in FULL_HISTORY_VARS else s
             season_h = int((s.index.month.map(SEASONS) == season).sum())
         else:
             season_h = 0
