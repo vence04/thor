@@ -27,6 +27,18 @@ VARS = {"temp_f": "Temperature (F)", "humidity_pct": "Humidity (%)",
 WINDOWS_D = (7, 28)
 LEADS = [(0, 6, "0-6h"), (6, 24, "6-24h"), (24, 48, "24-48h"), (48, 73, "48-72h")]
 
+# Chance of precipitation is a probability, so it is scored with the Brier score - the
+# mean squared gap between the published chance (0-1) and whether the gauge then
+# recorded at least WET_IN in that hour - not with an average miss. 0 is perfect.
+# "Climatology", always saying the window's own wet-hour rate, is the number a forecast
+# has to beat to be worth publishing at all. Bespoke is the share of twelve models
+# forecasting rain (predict.py, published since 2026-10-18); raw is Open-Meteo's own
+# probability, published beside it for exactly this comparison. The gauge is a tipping
+# bucket, so winter hours score snow as dry: read the wet_hours count before trusting a
+# winter window.
+WET_IN = 0.01
+PROB_VARS = ("precip_prob", "precip_prob_openmeteo")
+
 
 def published_forecasts(since: pd.Timestamp) -> list[dict]:
     rel = FORECAST_JSON.relative_to(ROOT).as_posix()
@@ -67,6 +79,50 @@ def pairs(forecasts: list[dict], actuals: pd.DataFrame) -> pd.DataFrame:
                                        "method"])
 
 
+def station_wet(actuals: pd.DataFrame) -> pd.Series:
+    """1 where the gauge recorded >= WET_IN in the hour, 0 where it recorded less, NaN
+    where it reported nothing. Hourly amounts come from the cumulative daily counter,
+    the same way bakeoff.load_actuals derives them."""
+    if "rain_daily_in" not in actuals:
+        return pd.Series(dtype=float)
+    daily = actuals["rain_daily_in"]
+    inc = daily.diff()
+    inc[inc < 0] = daily[inc < 0]  # day rollover: the counter resets, the new value IS the increment
+    return (inc >= WET_IN).astype(float).where(inc.notna())
+
+
+def pairs_prob(forecasts: list[dict], wet: pd.Series) -> pd.DataFrame:
+    rows = []
+    for f in forecasts:
+        issued = pd.Timestamp(f["generated_at"])
+        h = f.get("hourly", {})
+        bes_all, raw_all = h.get(PROB_VARS[0]), h.get(PROB_VARS[1])
+        if not bes_all or not raw_all:
+            continue  # published before both probabilities existed
+        for i, ts in enumerate(h.get("ts", [])):
+            t = pd.Timestamp(ts)
+            lead = (t - issued).total_seconds() / 3600
+            if lead < 0 or t not in wet.index or pd.isna(wet.at[t]):
+                continue
+            bes, raw = bes_all[i] if i < len(bes_all) else None, raw_all[i] if i < len(raw_all) else None
+            if bes is None or raw is None:
+                continue
+            rows.append((t, lead, float(wet.at[t]), float(bes) / 100, float(raw) / 100))
+    return pd.DataFrame(rows, columns=["ts", "lead_h", "wet", "bespoke", "raw"])
+
+
+def summarise_prob(d: pd.DataFrame) -> dict:
+    brier = lambda p: float(((p - d.wet) ** 2).mean())
+    b, r = brier(d.bespoke), brier(d.raw)
+    base = float(d.wet.mean())
+    wet_hours = int(d[d.wet > 0].ts.nunique())
+    # a dry window judges nothing: both scores are near zero and their ratio is noise
+    return {"pairs": int(len(d)), "hours": int(d.ts.nunique()), "wet_hours": wet_hours,
+            "bespoke_brier": round(b, 4), "raw_brier": round(r, 4),
+            "climatology_brier": round(base * (1 - base), 4),
+            "improvement_pct": round(100 * (1 - b / r), 1) if (r and wet_hours) else None}
+
+
 def summarise(d: pd.DataFrame) -> dict:
     be, re = d.bespoke - d.actual, d.raw - d.actual
     b_mae, r_mae = float(be.abs().mean()), float(re.abs().mean())
@@ -91,6 +147,7 @@ def main() -> None:
 
     forecasts = published_forecasts(now - pd.Timedelta(days=max(WINDOWS_D) + 3))
     d = pairs(forecasts, actuals)
+    dp = pairs_prob(forecasts, station_wet(actuals))
     card = {"generated_at": now.isoformat(), "forecasts_read": len(forecasts),
             "actuals_end": str(actuals.dropna(how="all").index.max()), "windows": {}}
     lines = ["# ThorCast scorecard", "",
@@ -120,6 +177,20 @@ def main() -> None:
             lines.append(f"| {label} | {s['hours']} | {s['bespoke_mae']} | {s['raw_mae']} | "
                          f"{s['improvement_pct']:+.0f}% | {s['bespoke_bias']:+.1f} |")
         lines.append("")
+        wp = dp[dp.ts >= now - pd.Timedelta(days=days)]
+        if not wp.empty:
+            s = summarise_prob(wp)
+            s["by_lead"] = {name: summarise_prob(wp[(wp.lead_h >= lo) & (wp.lead_h < hi)])
+                            for lo, hi, name in LEADS if len(wp[(wp.lead_h >= lo) & (wp.lead_h < hi)])}
+            card["windows"][key]["precip_prob"] = s
+            lines += ["| rain chance (Brier, 0 = perfect) | hours | wet hours | bespoke | Open-Meteo | always-climatology | improvement |",
+                      "|---|---|---|---|---|---|---|",
+                      f"| Rain chance | {s['hours']} | {s['wet_hours']} | {s['bespoke_brier']} | "
+                      f"{s['raw_brier']} | {s['climatology_brier']} | "
+                      f"{s['improvement_pct']:+.0f}% |"
+                      if s['improvement_pct'] is not None else
+                      f"| Rain chance | {s['hours']} | {s['wet_hours']} | {s['bespoke_brier']} | "
+                      f"{s['raw_brier']} | {s['climatology_brier']} | n/a |", ""]
 
     (REPORTS_DIR / "scorecard.json").write_text(json.dumps(card, indent=2), encoding="utf-8")
     (REPORTS_DIR / "scorecard.md").write_text("\n".join(lines), encoding="utf-8")

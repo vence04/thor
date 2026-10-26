@@ -305,6 +305,19 @@ function drawScorecard(){
     h += `<tr><td>${label}</td><td>${s.bespoke_mae} ${unit}</td><td>${s.raw_mae} ${unit}</td>` +
          `<td>${res}${fallback}</td></tr>`;
   }
+  // Rain chance is a probability, scored with the Brier score (0 is perfect) against
+  // whether the gauge then recorded rain; shown against Open-Meteo's own figure.
+  const rp = w.precip_prob;
+  if(rp && rp.hours){
+    hours = Math.max(hours, rp.hours);
+    const imp = rp.improvement_pct;
+    const res = !rp.wet_hours
+      ? '<span class="note">no rain fell, nothing to judge</span>'
+      : imp >= 0 ? `<span class="good">${Math.round(imp)}% closer</span>`
+                 : `<span class="bad">${Math.round(-imp)}% further off</span>`;
+    h += `<tr><td>Rain chance<span class="note">Brier score, 0 is perfect · ${rp.wet_hours} wet hour${rp.wet_hours===1?"":"s"}</span></td>` +
+         `<td>${rp.bespoke_brier.toFixed(3)}</td><td>${rp.raw_brier.toFixed(3)}</td><td>${res}</td></tr>`;
+  }
   document.getElementById("sctbl").innerHTML = h;
   document.getElementById("scmeta").textContent =
     `${hours} hours checked · updated ` +
