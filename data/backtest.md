@@ -2,45 +2,42 @@
 
 Source model: `best_match`. Rolling-origin CV, 4 folds. Winner must beat raw MAE by >2%.
 
-## temp_f  (n=10716, method=**raw**)
+## temp_f  (n=904, method=**bias**)
 | method | CV MAE |
 |--------|--------|
-| raw | 3.478 |
-| bias | 3.773 |
-| ridge | 3.620 |
+| raw | 4.823 |
+| bias | 3.741 |
 
-## humidity_pct  (n=10708, method=**raw**)
+## humidity_pct  (n=904, method=**bias**)
 | method | CV MAE |
 |--------|--------|
-| raw | 7.602 |
-| bias | 8.319 |
-| ridge | 8.534 |
+| raw | 12.578 |
+| bias | 9.263 |
 
-## dewpoint_f  (n=10716, method=**raw**)
+## dewpoint_f  (n=904, method=**bias**)
 | method | CV MAE |
 |--------|--------|
-| raw | 2.651 |
-| bias | 2.840 |
-| ridge | 2.845 |
+| raw | 2.412 |
+| bias | 2.243 |
 
-## wind_mph  (n=10716, method=**ridge**)
+## wind_mph  (n=10748, method=**ridge**)
 | method | CV MAE |
 |--------|--------|
-| raw | 2.826 |
-| bias | 1.967 |
-| ridge | 0.922 |
+| raw | 2.822 |
+| bias | 1.975 |
+| ridge | 0.920 |
 
-## gust_mph  (n=10716, method=**ridge**)
+## gust_mph  (n=10748, method=**ridge**)
 | method | CV MAE |
 |--------|--------|
-| raw | 3.746 |
-| bias | 3.594 |
-| ridge | 2.925 |
+| raw | 3.739 |
+| bias | 3.599 |
+| ridge | 2.924 |
 
-## pressure_abs_hpa  (n=8428, method=**ridge**)
+## pressure_abs_hpa  (n=8432, method=**ridge**)
 | method | CV MAE |
 |--------|--------|
 | raw | 0.965 |
 | bias | 0.789 |
 | ridge | 0.411 |
-| lgbm | 0.468 |
+| lgbm | 0.469 |
