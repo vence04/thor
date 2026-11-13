@@ -95,12 +95,29 @@ def fetch_day0(lat: float = LAT, lon: float = LON, start: str = START,
                out: Path = OUT, tag: str = "day0") -> None:
     end = END or pd.Timestamp.now("UTC").strftime("%Y-%m-%d")
     out.mkdir(parents=True, exist_ok=True)
+    # One request per model over the whole archive grows every week, and the slow
+    # models (icon_seamless, gem_seamless) began running past the 180 s timeout: the
+    # retrain died on "retries exhausted" on 2026-11-02 (regional gem_seamless) and
+    # 2026-11-09 (day0 icon_seamless), though both requests succeeded when retried by
+    # hand. Fetching in 120-day windows keeps each request small.
+    edges = pd.date_range(start, end, freq="120D").strftime("%Y-%m-%d").tolist()
+    windows = [(a, (pd.Timestamp(b) - pd.Timedelta(days=1)).strftime("%Y-%m-%d"))
+               for a, b in zip(edges, edges[1:])] + [(edges[-1], end)]
     for model in MODELS:
-        js = get("https://historical-forecast-api.open-meteo.com/v1/forecast", {
-            "latitude": lat, "longitude": lon, "start_date": start, "end_date": end,
-            "hourly": ",".join(HOURLY), "models": model, "timezone": "UTC", **UNITS,
-        })
-        df = frame(js)
+        try:
+            df = pd.concat([frame(get(
+                "https://historical-forecast-api.open-meteo.com/v1/forecast", {
+                    "latitude": lat, "longitude": lon, "start_date": a, "end_date": b,
+                    "hourly": ",".join(HOURLY), "models": model, "timezone": "UTC",
+                    **UNITS,
+                })) for a, b in windows])
+        except RuntimeError as e:
+            # One model's archive being unreachable should not cost the whole week's
+            # retrain. Keep last week's file for it (the bake-off reads whatever is
+            # there) and say so loudly in the log.
+            print(f"::warning::{tag} {model}: fetch failed ({e}); kept previous file")
+            continue
+        df = df[~df.index.duplicated(keep="last")]
         if not df.notna().any().any():
             # a model with no coverage here: skip rather than write an empty frame the
             # bake-off would have to special-case
