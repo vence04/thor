@@ -106,9 +106,16 @@ def _fetch_chunk(app_key, api_key, mac, start, end) -> pd.DataFrame | None:
     if js.get("code") != 0:
         print(f"ecowitt cloud error: {js.get('msg')}")
         return None
+    data = js.get("data")
+    if not isinstance(data, dict) or not data:
+        # Ecowitt answers a window with no readings as "data": [] rather than {}. That
+        # crashed the retrain on 2026-11-13. Treat it as an empty chunk and say which;
+        # if every chunk is empty, main() still fails loudly as a dead station.
+        print(f"ecowitt cloud: no readings from {start} to {end}")
+        return None
     cols = {}
     for (grp, field), canon in ECOWITT_FIELDS.items():
-        node = js.get("data", {}).get(grp, {}).get(field, {})
+        node = data.get(grp, {}).get(field, {})
         lst = node.get("list", {})
         if lst:
             # Ecowitt reports a reading it does not have as "-" (the WS3910B has no
