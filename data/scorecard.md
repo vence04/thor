@@ -1,31 +1,31 @@
 # ThorCast scorecard
 
-Every published forecast, compared hour by hour with the Bear Paw station. Bespoke is what the page showed; raw is the regional model it started from. Positive improvement means bespoke was closer. Updated 2026-11-15 19:38 UTC; station data to 2026-11-15 17:00.
+Every published forecast, compared hour by hour with the Bear Paw station. Bespoke is what the page showed; raw is the regional model it started from. Positive improvement means bespoke was closer. Updated 2026-11-16 17:51 UTC; station data to 2026-11-16 15:00.
 
 ## Last 7 days
 
 | variable | hours | bespoke avg miss | raw avg miss | improvement | bespoke bias |
 |---|---|---|---|---|---|
-| Temperature (F) | 166 | 7.46 | 1.59 | -368% | +7.5 |
-| Humidity (%) | 166 | 15.25 | 5.45 | -180% | -15.2 |
-| Dew point (F) | 166 | 1.68 | 1.79 | +6% | -0.4 |
-| Wind (mph) | 166 | 0.81 | 3.74 | +78% | +0.4 |
-| Gusts (mph) | 166 | 2.64 | 5.89 | +55% | +1.7 |
+| Temperature (F) | 166 | 7.01 | 1.46 | -379% | +6.9 |
+| Humidity (%) | 166 | 14.84 | 5.84 | -154% | -14.5 |
+| Dew point (F) | 166 | 1.74 | 1.9 | +8% | -0.7 |
+| Wind (mph) | 166 | 0.86 | 3.82 | +77% | +0.5 |
+| Gusts (mph) | 166 | 2.69 | 6.04 | +56% | +1.8 |
 
 | rain chance (Brier, 0 = perfect) | hours | wet hours | bespoke | Open-Meteo | always-climatology | improvement |
 |---|---|---|---|---|---|---|
-| Rain chance | 166 | 14 | 0.0914 | 0.1163 | 0.0809 | +21% |
+| Rain chance | 166 | 12 | 0.079 | 0.0978 | 0.07 | +19% |
 
 ## Last 28 days
 
 | variable | hours | bespoke avg miss | raw avg miss | improvement | bespoke bias |
 |---|---|---|---|---|---|
-| Temperature (F) | 531 | 5.34 | 3.68 | -45% | +1.4 |
-| Humidity (%) | 531 | 10.76 | 9.0 | -20% | -2.6 |
-| Dew point (F) | 531 | 2.0 | 2.07 | +3% | +0.3 |
-| Wind (mph) | 531 | 0.82 | 2.68 | +70% | +0.1 |
-| Gusts (mph) | 531 | 2.19 | 4.05 | +46% | +1.0 |
+| Temperature (F) | 551 | 5.32 | 3.6 | -48% | +1.6 |
+| Humidity (%) | 551 | 10.8 | 8.91 | -21% | -2.9 |
+| Dew point (F) | 551 | 1.98 | 2.06 | +4% | +0.2 |
+| Wind (mph) | 551 | 0.81 | 2.74 | +70% | +0.1 |
+| Gusts (mph) | 551 | 2.19 | 4.13 | +47% | +1.0 |
 
 | rain chance (Brier, 0 = perfect) | hours | wet hours | bespoke | Open-Meteo | always-climatology | improvement |
 |---|---|---|---|---|---|---|
-| Rain chance | 528 | 16 | 0.0238 | 0.0304 | 0.0228 | +22% |
+| Rain chance | 550 | 16 | 0.0231 | 0.0295 | 0.0222 | +22% |
