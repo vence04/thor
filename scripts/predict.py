@@ -157,19 +157,26 @@ def main() -> None:
               "forecast_days": 10, "timezone": "UTC", **UNITS}
     # Open-Meteo returned a 503 on 2026-10-17 and this call had no retry, so the hourly
     # forecast simply failed. The archive fetcher already retries; this now matches it.
+    # On 2026-11-18 at 17:12 UTC four 429s in 100 seconds failed the run, and the log
+    # could not say which Open-Meteo limit was hit. Print the reply's reason, and after a
+    # 429 wait a full minute so a per-minute limit has time to clear.
     js = None
     for attempt in range(4):
+        wait = 10 * (attempt + 1)
         try:
             r = requests.get("https://api.open-meteo.com/v1/forecast", params=params, timeout=60)
             if r.status_code == 200:
                 js = r.json()
                 break
+            print(f"open-meteo returned {r.status_code}: {r.text[:200]}")
             if r.status_code not in (429, 500, 502, 503, 504):
                 r.raise_for_status()
-            print(f"open-meteo returned {r.status_code}; retrying")
+            if r.status_code == 429:
+                wait = 60
+            print("retrying")
         except (requests.exceptions.RequestException, ValueError) as exc:
             print(f"open-meteo call failed ({type(exc).__name__}); retrying")
-        time.sleep(10 * (attempt + 1))
+        time.sleep(wait)
     if js is None:
         raise RuntimeError("open-meteo did not return a usable forecast after 4 attempts")
 
